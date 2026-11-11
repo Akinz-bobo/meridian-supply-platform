@@ -1,0 +1,56 @@
+name: Terraform
+
+on:
+  push:
+    branches: [main]
+    paths:
+      [
+        'infra/**',
+        'scripts/terraform-*.sh',
+        'Makefile',
+        '.terraform-version',
+        '.github/workflows/terraform.yml',
+      ]
+  pull_request:
+    paths:
+      [
+        'infra/**',
+        'scripts/terraform-*.sh',
+        'Makefile',
+        '.terraform-version',
+        '.github/workflows/terraform.yml',
+      ]
+
+concurrency:
+  group: terraform-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  static:
+    name: Format, validate and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read the pinned Terraform version
+        id: version
+        run: echo "terraform=$(cat .terraform-version)" >> "$GITHUB_OUTPUT"
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ steps.version.outputs.terraform }}
+          terraform_wrapper: false
+      - name: Cache providers
+        uses: actions/cache@v4
+        with:
+          path: ~/.terraform.d/plugin-cache
+          key: terraform-providers-${{ hashFiles('infra/**/.terraform.lock.hcl') }}
+      - name: Use the provider cache
+        run: |
+          mkdir -p ~/.terraform.d/plugin-cache
+          echo "TF_PLUGIN_CACHE_DIR=$HOME/.terraform.d/plugin-cache" >> "$GITHUB_ENV"
+      - name: Format and validate
+        run: make validate
+      - name: Module tests
+        run: make test
