@@ -12,8 +12,8 @@ The plan for building Meridian, milestone by milestone: what each delivers, what
 | Milestone                                                                                                         | Delivers                                                                           | Release | Status   |
 | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ------- | -------- |
 | [M0: Planning and architecture](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/1)               | The problem, domain, architecture, decisions and process, in writing               | v0.1.0  | Complete |
-| [M1: Infrastructure foundation](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/2)               | Emulator, Terraform layout, remote state, static analysis, policy checks, pipeline | v0.2.0  | Next     |
-| [M2: Network and security baseline](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/3)           | VPC, endpoints, security groups, KMS, IAM, secrets                                 | v0.3.0  | Planned  |
+| [M1: Infrastructure foundation](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/2)               | Emulator, Terraform layout, remote state, static analysis, policy checks, pipeline | v0.2.0  | Complete |
+| [M2: Network and security baseline](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/3)           | VPC, endpoints, security groups, KMS, IAM, secrets                                 | v0.3.0  | Next     |
 | [M3: Data layer](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/4)                              | RDS, DynamoDB, S3, ElastiCache modules                                             | v0.4.0  | Planned  |
 | [M4: Messaging and events](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/5)                    | SQS, SNS, Kinesis, EventBridge modules                                             | v0.5.0  | Planned  |
 | [M5: Compute platforms](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/6)                       | ECR, ECS, EKS, load balancing, the EC2 gateway                                     | v0.6.0  | Planned  |
@@ -74,9 +74,11 @@ Each milestone has a goal, deliverables and exit criteria. Milestones 0 to 2 are
 
 **Goal.** Make it possible to change infrastructure safely: one command to start the emulator, a layout for modules and environments, remote state, and a pipeline that checks and applies every change.
 
-**Deliverables.** Emulator stack and developer bootstrap. Terraform project layout and provider configuration. Remote state with locking. Static analysis. Policy as code. Plan on pull request, apply on merge. Module standards with generated documentation.
+**Delivered.** A pinned [emulator stack](../guides/local-development.md). The [Terraform layout](../../infra/README.md) with a naming and tagging module and the `foundation` layer for three environments. [Remote state](../adr/0009-remote-state-in-s3-with-native-locking.md) with locking and a [recovery runbook](../runbooks/terraform-state.md). [Static analysis](../guides/static-analysis.md). [Policy as code](../guides/policy-as-code.md) with 13 rules. The [pipeline](../guides/pipeline.md). [Module standards](../architecture/module-standards.md) with generated documentation. Decision records 0008 and 0009.
 
-**Exit criteria.** A pull request that changes infrastructure shows a plan, is blocked by a policy violation, and is applied to a clean emulator on merge.
+**Exit criteria, as verified.** A pull request that changes infrastructure shows a plan as a comment (first seen on pull request 46). A plan that violates a policy fails, checked with a deliberately non-compliant change. On merge, all three environments are applied to a clean emulator and smoke tested.
+
+**What changed from the plan.** State locking uses the S3 backend's own lock file, not a DynamoDB table, which is deprecated. State is split into layers per environment, which was not in the original issue list and is recorded in decision record 0008.
 
 ### M2: Network and security baseline
 
