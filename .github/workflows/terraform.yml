@@ -94,3 +94,15 @@ jobs:
           restore-keys: trivy-checks-
       - name: trivy
         run: make scan
+
+  policy:
+    name: Policy tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the pinned tools
+        run: |
+          BIN_DIR="$HOME/.local/bin" ./scripts/install-tools.sh conftest
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Test the policies
+        run: make policy-test
