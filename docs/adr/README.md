@@ -16,3 +16,4 @@ Start from the [template](template.md).
 | [0004](0004-single-repository.md)                        | Keep infrastructure, services and documentation in one repository               | Accepted |
 | [0005](0005-compute-model-per-workload.md)               | Choose the compute model per workload by a stated rule                          | Accepted |
 | [0006](0006-event-backbone-and-messaging-conventions.md) | Use EventBridge with a queue per consumer, and one set of messaging conventions | Accepted |
+| [0007](0007-environments-and-account-isolation.md)       | Three environments, one AWS account each                                        | Accepted |
