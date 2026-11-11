@@ -58,10 +58,10 @@ check required python3 3.10 'Used by the documentation checks.' python3 --versio
 check required tflint 0.60 'Install with: make tools' tflint --version
 check required trivy 0.60 'Install with: make tools' trivy --version
 check required conftest 0.60 'Install with: make tools' conftest --version
+check required terraform-docs 0.20 'Install with: make tools' terraform-docs --version
 
 echo
 echo 'Needed by later milestones'
-check optional terraform-docs 0.17 'Milestone 1: module documentation.' terraform-docs --version
 check optional kubectl 1.29 'Milestone 5: EKS.' kubectl version --client
 check optional helm 3.14 'Milestone 5: EKS workloads.' helm version --short
 check optional ansible 2.15 'Milestone 5: the EC2 gateway.' ansible --version
