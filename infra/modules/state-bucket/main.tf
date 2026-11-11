@@ -5,8 +5,6 @@
 # Locking uses a lock object in the same bucket (the S3 backend's
 # use_lockfile), so no lock table is needed.
 
-data "aws_caller_identity" "current" {}
-
 resource "aws_kms_key" "state" {
   description             = "Encrypts Terraform state in ${var.name}"
   enable_key_rotation     = true
