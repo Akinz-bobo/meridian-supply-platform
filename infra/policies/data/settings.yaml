@@ -1,0 +1,5 @@
+# Organisation settings read by the policies.
+settings:
+  # Regions where infrastructure may be created. See POL-REGION-1.
+  allowed_regions:
+    - eu-west-1
