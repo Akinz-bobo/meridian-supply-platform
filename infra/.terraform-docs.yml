@@ -1,0 +1,45 @@
+# How module READMEs are generated. Run with: make docs
+#
+# A module's README has two parts. The title and description above the
+# BEGIN_TF_DOCS marker are written by hand. Everything between the markers
+# is written by terraform-docs from the code and must not be edited.
+
+formatter: markdown table
+
+content: |-
+  ## Usage
+
+  ```hcl
+  {{ include "examples/basic/main.tf" }}
+  ```
+
+  {{ .Requirements }}
+
+  {{ .Inputs }}
+
+  {{ .Outputs }}
+
+  {{ .Resources }}
+
+output:
+  file: README.md
+  mode: inject
+  template: |-
+    <!-- BEGIN_TF_DOCS -->
+    {{ .Content }}
+    <!-- END_TF_DOCS -->
+
+sort:
+  enabled: true
+  by: required
+
+settings:
+  anchor: false
+  default: true
+  description: true
+  escape: true
+  hide-empty: true
+  indent: 2
+  lockfile: false
+  required: true
+  type: true
