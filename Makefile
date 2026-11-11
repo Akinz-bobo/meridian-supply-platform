@@ -10,6 +10,20 @@ export AWS_DEFAULT_REGION ?= eu-west-1
 export AWS_ACCESS_KEY_ID ?= test
 export AWS_SECRET_ACCESS_KEY ?= test
 
+# Which environment and state layer the Terraform targets act on.
+ENV ?= dev
+LAYER ?= foundation
+TF_DIR := infra/environments/$(ENV)/$(LAYER)
+TF := terraform -chdir=$(TF_DIR)
+TF_VARS := -var-file=../env.tfvars
+
+# TARGET=emulator (the default) points Terraform at the local emulator.
+# TARGET=aws leaves the provider on real AWS, using your own credentials.
+TARGET ?= emulator
+ifeq ($(TARGET),emulator)
+export TF_VAR_aws_endpoint_url := $(AWS_ENDPOINT_URL)
+endif
+
 .PHONY: help
 help: ## Show this help
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -39,3 +53,32 @@ status: ## Show whether the emulator is running and which services answer
 .PHONY: logs
 logs: ## Follow the emulator logs
 	docker compose logs --follow floci
+
+.PHONY: init
+init: ## Initialise Terraform for ENV and LAYER
+	$(TF) init -input=false
+
+.PHONY: plan
+plan: init ## Show what would change for ENV and LAYER
+	$(TF) plan -input=false $(TF_VARS)
+
+.PHONY: apply
+apply: init ## Apply ENV and LAYER
+	$(TF) apply -input=false -auto-approve $(TF_VARS)
+
+.PHONY: destroy
+destroy: init ## Destroy ENV and LAYER
+	$(TF) destroy -input=false -auto-approve $(TF_VARS)
+
+.PHONY: fmt
+fmt: ## Format every Terraform file
+	terraform fmt -recursive infra
+
+.PHONY: validate
+validate: ## Check formatting and validate every layer and module
+	terraform fmt -recursive -check infra
+	@./scripts/terraform-validate-all.sh
+
+.PHONY: test
+test: ## Run the tests of every module that has them
+	@./scripts/terraform-test-all.sh
