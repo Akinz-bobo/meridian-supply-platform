@@ -106,3 +106,15 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Test the policies
         run: make policy-test
+
+  module-docs:
+    name: Module documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the pinned tools
+        run: |
+          BIN_DIR="$HOME/.local/bin" ./scripts/install-tools.sh terraform-docs
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Check that every module README is up to date
+        run: make docs-check
