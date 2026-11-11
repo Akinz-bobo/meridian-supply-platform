@@ -49,21 +49,21 @@ Every change starts as an issue using one of two templates.
 
 **Task** issues have three parts:
 
-| Part | Purpose |
-| --- | --- |
-| Context | Why the work is needed and where it fits |
-| Scope | What is included, and what is deliberately left out |
+| Part                | Purpose                                                 |
+| ------------------- | ------------------------------------------------------- |
+| Context             | Why the work is needed and where it fits                |
+| Scope               | What is included, and what is deliberately left out     |
 | Acceptance criteria | A checklist. The issue is done when every box is ticked |
 
 **Bug** issues record what happened, what should have happened, the steps to reproduce and the evidence. A bug is not fixed until it has been reproduced.
 
 ### Labels
 
-| Group | Labels | Meaning |
-| --- | --- | --- |
-| Type | `type: feature`, `type: infra`, `type: docs`, `type: bug`, `type: chore`, `type: decision` | What kind of work it is |
-| Area | `area: network`, `area: security`, `area: data`, `area: messaging`, `area: compute`, `area: services`, `area: analytics`, `area: observability`, `area: ci`, `area: planning` | Which part of the system it touches |
-| Scale | `epic` | Tracks a milestone-sized body of work, broken into issues when that milestone starts |
+| Group | Labels                                                                                                                                                                        | Meaning                                                                              |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Type  | `type: feature`, `type: infra`, `type: docs`, `type: bug`, `type: chore`, `type: decision`                                                                                    | What kind of work it is                                                              |
+| Area  | `area: network`, `area: security`, `area: data`, `area: messaging`, `area: compute`, `area: services`, `area: analytics`, `area: observability`, `area: ci`, `area: planning` | Which part of the system it touches                                                  |
+| Scale | `epic`                                                                                                                                                                        | Tracks a milestone-sized body of work, broken into issues when that milestone starts |
 
 ### Milestones
 
@@ -77,13 +77,13 @@ One branch per issue, cut from `main`:
 <type>/<issue-number>-<short-description>
 ```
 
-| Type | Used for | Example |
-| --- | --- | --- |
-| `feat` | New capability, application or infrastructure | `feat/16-vpc-module` |
-| `fix` | Bug fix | `fix/57-nat-route-missing` |
-| `docs` | Documentation only | `docs/4-architecture-overview` |
-| `chore` | Tooling, dependencies, pipelines | `chore/12-terraform-static-analysis` |
-| `refactor` | Structure change with no behaviour change | `refactor/88-split-network-module` |
+| Type       | Used for                                      | Example                              |
+| ---------- | --------------------------------------------- | ------------------------------------ |
+| `feat`     | New capability, application or infrastructure | `feat/16-vpc-module`                 |
+| `fix`      | Bug fix                                       | `fix/57-nat-route-missing`           |
+| `docs`     | Documentation only                            | `docs/4-architecture-overview`       |
+| `chore`    | Tooling, dependencies, pipelines              | `chore/12-terraform-static-analysis` |
+| `refactor` | Structure change with no behaviour change     | `refactor/88-split-network-module`   |
 
 Branches are short-lived. One that has been open for more than a few days is a sign the issue should have been split.
 
@@ -162,11 +162,11 @@ flowchart LR
 
 The repository is versioned as a whole with [Semantic Versioning](https://semver.org). A tag is cut when a milestone closes:
 
-| Milestone | Tag |
-| --- | --- |
-| M0 to M5 (foundations) | `v0.1.0` to `v0.6.0` |
+| Milestone                           | Tag                   |
+| ----------------------------------- | --------------------- |
+| M0 to M5 (foundations)              | `v0.1.0` to `v0.6.0`  |
 | M6 to M11 (services and operations) | `v0.7.0` to `v0.12.0` |
-| M12 | `v1.0.0` |
+| M12                                 | `v1.0.0`              |
 
 Each tag has release notes generated from the merged pull requests and a changelog entry written by hand, because a list of commits is not an explanation.
 
@@ -174,9 +174,9 @@ Each tag has release notes generated from the merged pull requests and a changel
 
 On a team these are different people. Here they are different hats, and the process keeps them separate on purpose: the checks, the plan review and the acceptance criteria do not care who wrote the change.
 
-| Role | Responsibility |
-| --- | --- |
-| Author | Writes the change, its tests and its documentation |
-| Reviewer | Reads the diff and the plan, checks it against the issue |
+| Role     | Responsibility                                                     |
+| -------- | ------------------------------------------------------------------ |
+| Author   | Writes the change, its tests and its documentation                 |
+| Reviewer | Reads the diff and the plan, checks it against the issue           |
 | Pipeline | Runs every check, applies infrastructure, refuses anything failing |
-| Owner | Decides priority and accepts the milestone |
+| Owner    | Decides priority and accepts the milestone                         |
