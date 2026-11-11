@@ -11,6 +11,7 @@ set -euo pipefail
 
 TFLINT_VERSION=0.66.0
 TRIVY_VERSION=0.76.2
+CONFTEST_VERSION=0.71.1
 
 BIN_DIR="${BIN_DIR:-$HOME/.local/bin}"
 mkdir -p "$BIN_DIR"
@@ -67,13 +68,25 @@ install_trivy() {
   echo "trivy $TRIVY_VERSION installed"
 }
 
+install_conftest() {
+  if installed conftest "$CONFTEST_VERSION"; then echo "conftest $CONFTEST_VERSION already installed"; return; fi
+  local conftest_os conftest_arch
+  [ "$os" = linux ] && conftest_os=Linux || conftest_os=Darwin
+  [ "$arch" = amd64 ] && conftest_arch=x86_64 || conftest_arch=arm64
+  local file="conftest_${CONFTEST_VERSION}_${conftest_os}_${conftest_arch}.tar.gz"
+  fetch "https://github.com/open-policy-agent/conftest/releases/download/v${CONFTEST_VERSION}" "$file" checksums.txt
+  tar --extract --gzip --file "$work/$file" --directory "$BIN_DIR" conftest
+  echo "conftest $CONFTEST_VERSION installed"
+}
+
 tools=("$@")
-[ ${#tools[@]} -gt 0 ] || tools=(tflint trivy)
+[ ${#tools[@]} -gt 0 ] || tools=(tflint trivy conftest)
 
 for tool in "${tools[@]}"; do
   case "$tool" in
     tflint) install_tflint ;;
     trivy) install_trivy ;;
+    conftest) install_conftest ;;
     *) echo "Unknown tool: $tool" >&2; exit 1 ;;
   esac
 done
