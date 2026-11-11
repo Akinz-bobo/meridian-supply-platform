@@ -12,7 +12,7 @@ This project follows the same process whether one person or ten are working on i
 
 - `main` is always deployable. Nothing merges with a failing check.
 - Infrastructure changes include the Terraform plan summary in the pull request.
-- Significant decisions get a decision record in the same pull request as the change.
+- Significant decisions get a [decision record](docs/adr/README.md) in the same pull request as the change.
 - Documentation is part of the change, not a follow-up.
 - No secrets in the repository, ever. Not in code, not in history, not in examples.
 - Bugs get an issue with steps to reproduce before they get a fix.

@@ -39,13 +39,14 @@ Every resource is declared in Terraform: reusable modules, composed into separat
 
 The platform targets AWS. Day to day, and in CI, it is provisioned against [Floci](https://github.com/floci-io/floci), an open-source AWS emulator, so that anyone can clone the repository and stand the whole system up on a laptop with no AWS account and no bill.
 
-That choice has limits, and they are stated plainly: an emulator proves that the infrastructure code is valid and that the services work together. It does not prove production performance, real quotas or real cost.
+That choice has limits, and they are stated plainly in [decision record 0002](docs/adr/0002-develop-against-an-aws-emulator.md): an emulator proves that the infrastructure code is valid and that the services work together. It does not prove production performance, real quotas or real cost.
 
 ## Documentation
 
 | Document                                              | What it covers                                   |
 | ----------------------------------------------------- | ------------------------------------------------ |
 | [Delivery process](docs/planning/delivery-process.md) | How work moves from issue to merged pull request |
+| [Decision records](docs/adr/README.md)                | Why each significant choice was made             |
 
 More documents land through their own pull requests during the first milestone.
 
