@@ -59,6 +59,20 @@ run "keeps_extra_tags_but_never_lets_them_override_a_standard_tag" {
   }
 }
 
+run "accepts_the_shared_services_environment" {
+  command = plan
+
+  variables {
+    environment = "shared"
+    component   = "tfstate"
+  }
+
+  assert {
+    condition     = output.prefix == "meridian-shared-tfstate"
+    error_message = "Expected the prefix meridian-shared-tfstate, got ${output.prefix}."
+  }
+}
+
 run "rejects_an_unknown_environment" {
   command = plan
 

@@ -10,12 +10,12 @@ variable "project" {
 }
 
 variable "environment" {
-  description = "Environment the resources belong to."
+  description = "Environment the resources belong to. `shared` is the shared-services account."
   type        = string
 
   validation {
-    condition     = contains(["dev", "stg", "prod"], var.environment)
-    error_message = "The environment must be one of: dev, stg, prod."
+    condition     = contains(["dev", "stg", "prod", "shared"], var.environment)
+    error_message = "The environment must be one of: dev, stg, prod, shared."
   }
 }
 
