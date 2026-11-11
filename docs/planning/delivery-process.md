@@ -1,0 +1,113 @@
+# Delivery process
+
+How a piece of work moves from an idea to a change on `main`. The process is the same for a one-line fix and a new service, and the same whether one person or a team is working.
+
+- [Principles](#principles)
+- [The path of a change](#the-path-of-a-change)
+- [Issues](#issues)
+- [Branches](#branches)
+- [Commits](#commits)
+- [Pull requests](#pull-requests)
+
+## Principles
+
+1. **`main` is always deployable.** Every commit on it has passed every check.
+2. **Work is visible before it starts.** An issue exists before a branch does.
+3. **Small changes, merged often.** A pull request should be reviewable in one sitting.
+4. **Decisions are written down** next to the change that implements them.
+5. **Documentation ships with the change.** A feature without its documentation is not finished.
+6. **History is honest.** Commits are not squashed away, rewritten after merge or backdated.
+
+## The path of a change
+
+```mermaid
+flowchart LR
+    idea([Need or bug]) --> issue[Issue<br/>context, scope, acceptance criteria]
+    issue --> ready{Ready?}
+    ready -- no --> refine[Refine or split] --> issue
+    ready -- yes --> branch[Branch from main]
+    branch --> work[Small commits<br/>code, tests, docs]
+    work --> pr[Pull request<br/>links the issue]
+    pr --> checks{Checks pass?}
+    checks -- no --> work
+    checks -- yes --> review[Review]
+    review -- changes --> work
+    review -- approved --> merge[Rebase and merge]
+    merge --> main[(main)]
+    main --> deploy[Applied by the pipeline]
+    deploy --> close([Issue closed])
+```
+
+## Issues
+
+Every change starts as an issue using one of two templates.
+
+**Task** issues have three parts:
+
+| Part | Purpose |
+| --- | --- |
+| Context | Why the work is needed and where it fits |
+| Scope | What is included, and what is deliberately left out |
+| Acceptance criteria | A checklist. The issue is done when every box is ticked |
+
+**Bug** issues record what happened, what should have happened, the steps to reproduce and the evidence. A bug is not fixed until it has been reproduced.
+
+### Labels
+
+| Group | Labels | Meaning |
+| --- | --- | --- |
+| Type | `type: feature`, `type: infra`, `type: docs`, `type: bug`, `type: chore`, `type: decision` | What kind of work it is |
+| Area | `area: network`, `area: security`, `area: data`, `area: messaging`, `area: compute`, `area: services`, `area: analytics`, `area: observability`, `area: ci`, `area: planning` | Which part of the system it touches |
+| Scale | `epic` | Tracks a milestone-sized body of work, broken into issues when that milestone starts |
+
+### Milestones
+
+Issues are grouped into milestones, each with a goal and exit criteria. Later milestones begin as a single epic. The epic is broken into issues only when the milestone before it closes, so the breakdown reflects what was learned along the way. Planning everything in detail up front would produce a plan that is wrong in detail.
+
+## Branches
+
+One branch per issue, cut from `main`:
+
+```
+<type>/<issue-number>-<short-description>
+```
+
+| Type | Used for | Example |
+| --- | --- | --- |
+| `feat` | New capability, application or infrastructure | `feat/16-vpc-module` |
+| `fix` | Bug fix | `fix/57-nat-route-missing` |
+| `docs` | Documentation only | `docs/4-architecture-overview` |
+| `chore` | Tooling, dependencies, pipelines | `chore/12-terraform-static-analysis` |
+| `refactor` | Structure change with no behaviour change | `refactor/88-split-network-module` |
+
+Branches are short-lived. One that has been open for more than a few days is a sign the issue should have been split.
+
+## Commits
+
+Commits follow [Conventional Commits](https://www.conventionalcommits.org):
+
+```
+<type>(<scope>): <what changed, in the imperative>
+
+<why, when it is not obvious from the subject>
+```
+
+```
+feat(network): add private subnets in three availability zones
+fix(state): use a separate lock key per environment
+docs(adr): record the choice of an AWS emulator
+```
+
+Each commit is one logical step that leaves the tree in a working state. "Add the module", "add its tests" and "document it" are three commits, not one. The body explains why when the subject cannot.
+
+## Pull requests
+
+A pull request:
+
+- links its issue with `Closes #<number>`
+- says what changed and why, in a few sentences
+- says how the change was verified: commands, tests, plan output
+- passes every check
+- for infrastructure, includes the plan summary and calls out anything destroyed or replaced
+
+Pull requests are merged by **rebase**. `main` stays linear, every commit on it is one that was reviewed, and `git bisect` works. Squash merging would discard the step-by-step history, and merge commits would add noise without information.
