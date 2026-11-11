@@ -5,6 +5,8 @@ What the business does, who is involved, and the concepts the software has to re
 - [The business](#the-business)
 - [People and their goals](#people-and-their-goals)
 - [Concepts and how they relate](#concepts-and-how-they-relate)
+- [Business rules](#business-rules)
+- [Lifecycles](#lifecycles)
 
 ## The business
 
@@ -85,3 +87,113 @@ The model falls into six areas. Each becomes a service that owns its data and sh
 - **Procurement is separate from budget** because a purchase order has a life of its own (sent, part received, closed), and budget rules belong to finance, who change them independently.
 - **Planning owns no operational data.** It reads events from the others and produces proposals. If it is down, the warehouses keep working.
 - **Analytics is downstream of everything** and nothing depends on it, so reporting load can never slow an operation.
+
+## Business rules
+
+These are the rules the software must enforce. Each has an identifier so that code, tests and events can refer to it.
+
+### Catalog and curation
+
+| Id    | Rule                                                                                                                                      |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| CAT-1 | A product enters the product master only after a data steward approves it, or it passes every automatic check and the supplier is trusted |
+| CAT-2 | A product has exactly one storage class: ambient, chilled or frozen                                                                       |
+| CAT-3 | A product identifier (GTIN) is unique in the product master                                                                               |
+| CAT-4 | A supplier file is processed as a whole for reporting, but each row succeeds or fails on its own. One bad row does not reject the file    |
+| CAT-5 | Every change to an approved product is versioned and attributed                                                                           |
+
+### Inventory
+
+| Id    | Rule                                                                                                                                |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| INV-1 | Stock is tracked per batch, per zone. There is no stock without a batch                                                             |
+| INV-2 | A batch can only be stored in a zone whose temperature class matches the product's storage class                                    |
+| INV-3 | Stock is allocated **first expired, first out**: the batch with the earliest expiry that is still sellable goes first               |
+| INV-4 | A batch is not sellable within its product's minimum remaining shelf life, and is quarantined automatically at expiry               |
+| INV-5 | Stock on hand is never negative. A movement that would make it so is rejected and investigated                                      |
+| INV-6 | Stock levels change only through recorded movements. The ledger of movements is the source of truth, and levels are derived from it |
+| INV-7 | A recalled batch is quarantined everywhere at once, and every movement of it can be listed                                          |
+
+### Procurement
+
+| Id    | Rule                                                                                                         |
+| ----- | ------------------------------------------------------------------------------------------------------------ |
+| PRO-1 | A purchase order can be sent only when a budget commitment for its full value exists                         |
+| PRO-2 | A goods receipt creates batches and stock. Receiving more than was ordered needs approval beyond a tolerance |
+| PRO-3 | A received batch with less remaining shelf life than agreed with the supplier is rejected at the dock        |
+| PRO-4 | A purchase order moves only forward through its states and is never deleted                                  |
+
+### Budget
+
+| Id    | Rule                                                                                                            |
+| ----- | --------------------------------------------------------------------------------------------------------------- |
+| BUD-1 | A budget is an amount for one category in one period                                                            |
+| BUD-2 | Available = budget - committed - actual. It is never allowed to go below zero without an approved exception     |
+| BUD-3 | Raising a purchase order commits budget. Receiving goods turns commitment into actual. Cancelling releases it   |
+| BUD-4 | A single order above the approval threshold needs a finance controller's approval, whatever the budget position |
+| BUD-5 | Money is held in minor units as integers, with a currency. No floating point                                    |
+
+### Planning
+
+| Id    | Rule                                                                                                  |
+| ----- | ----------------------------------------------------------------------------------------------------- |
+| PLN-1 | Reorder point = expected demand over the supplier's lead time + safety stock                          |
+| PLN-2 | A proposal never suggests more than can be sold before it would expire                                |
+| PLN-3 | A proposal respects the supplier's minimum order quantity and pack size                               |
+| PLN-4 | Proposals are suggestions. A buyer accepts, changes or dismisses each one, and the reason is recorded |
+
+## Lifecycles
+
+### Supplier file
+
+```mermaid
+stateDiagram-v2
+    [*] --> Uploaded
+    Uploaded --> Validating
+    Validating --> Rejected: unreadable or wrong format
+    Validating --> InReview: rows need a steward
+    Validating --> Approved: all rows pass, trusted supplier
+    InReview --> Approved
+    InReview --> PartlyApproved: some rows rejected
+    Approved --> Published
+    PartlyApproved --> Published
+    Published --> [*]
+    Rejected --> [*]
+```
+
+### Purchase order
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft
+    Draft --> AwaitingApproval: above threshold
+    Draft --> Committed: budget reserved
+    AwaitingApproval --> Committed: approved
+    AwaitingApproval --> Cancelled: declined
+    Committed --> Sent
+    Sent --> PartlyReceived
+    Sent --> Received
+    PartlyReceived --> Received
+    Sent --> Cancelled
+    Received --> Closed
+    Closed --> [*]
+    Cancelled --> [*]
+```
+
+### Batch
+
+```mermaid
+stateDiagram-v2
+    [*] --> Received
+    Received --> Available: passed inspection
+    Received --> Quarantined: failed inspection
+    Available --> ShortDated: inside minimum shelf life
+    Available --> Quarantined: recall or damage
+    ShortDated --> Expired
+    Quarantined --> Available: released
+    Quarantined --> WrittenOff
+    Expired --> WrittenOff
+    Available --> Depleted: all units moved out
+    WrittenOff --> [*]
+    Depleted --> [*]
+```
