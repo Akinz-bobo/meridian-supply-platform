@@ -8,8 +8,9 @@ Start from the [template](template.md).
 
 ## Index
 
-| Number                                          | Decision                                 | Status   |
-| ----------------------------------------------- | ---------------------------------------- | -------- |
-| [0001](0001-record-architecture-decisions.md)   | Record architecture decisions            | Accepted |
-| [0002](0002-develop-against-an-aws-emulator.md) | Develop and test against an AWS emulator | Accepted |
-| [0003](0003-terraform-for-infrastructure.md)    | Use Terraform for infrastructure as code | Accepted |
+| Number                                          | Decision                                                          | Status   |
+| ----------------------------------------------- | ----------------------------------------------------------------- | -------- |
+| [0001](0001-record-architecture-decisions.md)   | Record architecture decisions                                     | Accepted |
+| [0002](0002-develop-against-an-aws-emulator.md) | Develop and test against an AWS emulator                          | Accepted |
+| [0003](0003-terraform-for-infrastructure.md)    | Use Terraform for infrastructure as code                          | Accepted |
+| [0004](0004-single-repository.md)               | Keep infrastructure, services and documentation in one repository | Accepted |
