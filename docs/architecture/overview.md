@@ -180,7 +180,7 @@ Two styles, chosen by one question: does the caller need the answer to continue?
 | **Request and response** | A person is waiting, or the caller cannot proceed without the result                                         | HTTPS through API Gateway and the internal load balancer |
 | **Events**               | Something happened that others may care about. The producer does not wait and does not know who is listening | EventBridge bus, delivered to one SQS queue per consumer |
 
-Events are the default between services. The conventions (naming, envelope, idempotency, dead-letter handling) are decided in their own record (tracked in [#7](https://github.com/Akinz-bobo/meridian-supply-platform/issues/7)).
+Events are the default between services. The conventions (naming, envelope, idempotency, dead-letter handling) are set in [decision record 0006](../adr/0006-event-backbone-and-messaging-conventions.md), and every event is listed in the [event catalogue](events.md).
 
 ### Flow 1: a delivery arrives
 

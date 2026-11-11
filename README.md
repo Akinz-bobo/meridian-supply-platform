@@ -50,6 +50,7 @@ That choice has limits, and they are stated plainly in [decision record 0002](do
 | [Domain model](docs/domain/domain-model.md)            | The business, its concepts, rules and lifecycles                             |
 | [Glossary](docs/domain/glossary.md)                    | The words used here, with one meaning each                                   |
 | [Architecture overview](docs/architecture/overview.md) | Context, services, data ownership, event flows and the AWS service catalogue |
+| [Event catalogue](docs/architecture/events.md)         | Every planned event, its producer and its consumers                          |
 
 More documents land through their own pull requests during the first milestone.
 
