@@ -2,7 +2,7 @@
 
 A supply chain planning and operations platform for a distributor of perishable goods, built as a distributed system on AWS and defined entirely as code.
 
-> **Status: in active development.** This repository is built in the open, milestone by milestone. The [milestones](https://github.com/Akinz-bobo/meridian-supply-platform/milestones) show what exists today and what is planned. Nothing here is described as done until it is merged and tested.
+> **Status: in active development.** This repository is built in the open, milestone by milestone. The [roadmap](docs/planning/roadmap.md) shows what exists today and what is planned. Nothing here is described as done until it is merged and tested.
 
 ## The problem
 
@@ -52,8 +52,9 @@ That choice has limits, and they are stated plainly in [decision record 0002](do
 | [Architecture overview](docs/architecture/overview.md)                | Context, services, data ownership, event flows and the AWS service catalogue  |
 | [Event catalogue](docs/architecture/events.md)                        | Every planned event, its producer and its consumers                           |
 | [Environments, naming and tagging](docs/architecture/environments.md) | How environments differ, the naming and tagging standard and the address plan |
+| [Roadmap](docs/planning/roadmap.md)                                   | Milestones, their order, dependencies and status                              |
 
-More documents land through their own pull requests during the first milestone.
+Changes are summarised in the [changelog](CHANGELOG.md).
 
 ## Contributing
 
