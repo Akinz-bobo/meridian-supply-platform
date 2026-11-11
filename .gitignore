@@ -34,3 +34,6 @@ __pycache__/
 
 # Emulator state
 .floci/
+
+# Generated reports
+plan-report.md
