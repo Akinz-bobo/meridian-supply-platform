@@ -43,7 +43,11 @@ That choice has limits, and they are stated plainly: an emulator proves that the
 
 ## Documentation
 
-The architecture overview, decision records, domain model and roadmap are being written as the first milestone. Each lands through its own pull request and will be linked here.
+| Document                                              | What it covers                                   |
+| ----------------------------------------------------- | ------------------------------------------------ |
+| [Delivery process](docs/planning/delivery-process.md) | How work moves from issue to merged pull request |
+
+More documents land through their own pull requests during the first milestone.
 
 ## Contributing
 
