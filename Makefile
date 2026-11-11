@@ -12,6 +12,7 @@ export AWS_SECRET_ACCESS_KEY ?= test
 
 # Which environment and state layer the Terraform targets act on.
 ENV ?= dev
+ENVS ?= dev staging production
 LAYER ?= foundation
 TF_DIR := infra/environments/$(ENV)/$(LAYER)
 TF := terraform -chdir=$(TF_DIR)
@@ -83,6 +84,22 @@ apply: init ## Apply ENV and LAYER
 .PHONY: destroy
 destroy: init ## Destroy ENV and LAYER
 	$(TF) destroy -input=false -auto-approve $(TF_VARS)
+
+.PHONY: apply-all
+apply-all: ## Apply every layer of ENV, in dependency order
+	@./scripts/each-layer.sh apply $(ENV)
+
+.PHONY: destroy-all
+destroy-all: ## Destroy every layer of ENV, in reverse order
+	@./scripts/each-layer.sh destroy $(ENV)
+
+.PHONY: report
+report: ## Plan every layer of ENVS, check policies and write plan-report.md
+	@./scripts/plan-report.sh plan-report.md $(ENVS)
+
+.PHONY: smoke
+smoke: ## Check that the applied ENV looks right, by asking the AWS API
+	@./scripts/smoke-test.sh $(ENV)
 
 .PHONY: fmt
 fmt: ## Format every Terraform file
