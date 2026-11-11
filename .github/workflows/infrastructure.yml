@@ -1,0 +1,201 @@
+name: Infrastructure
+
+# Plans every infrastructure change on a pull request and applies it on
+# merge. See docs/guides/pipeline.md.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'infra/**'
+      - 'scripts/**'
+      - 'Makefile'
+      - 'compose.yaml'
+      - '.terraform-version'
+      - '.github/workflows/infrastructure.yml'
+  pull_request:
+    paths:
+      - 'infra/**'
+      - 'scripts/**'
+      - 'Makefile'
+      - 'compose.yaml'
+      - '.terraform-version'
+      - '.github/workflows/infrastructure.yml'
+
+concurrency:
+  # One run at a time per branch. A run on main is never cancelled halfway
+  # through an apply.
+  group: infrastructure-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  ENVIRONMENTS: dev staging production
+  TF_IN_AUTOMATION: 'true'
+  TF_INPUT: '0'
+
+jobs:
+  plan:
+    name: Plan, policy and rehearsal
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read the pinned Terraform version
+        id: version
+        run: echo "terraform=$(cat .terraform-version)" >> "$GITHUB_OUTPUT"
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ steps.version.outputs.terraform }}
+          terraform_wrapper: false
+
+      - name: Cache providers
+        uses: actions/cache@v4
+        with:
+          path: ~/.terraform.d/plugin-cache
+          key: terraform-providers-${{ hashFiles('infra/**/.terraform.lock.hcl') }}
+
+      - name: Install the pinned tools
+        run: |
+          mkdir -p ~/.terraform.d/plugin-cache
+          echo "TF_PLUGIN_CACHE_DIR=$HOME/.terraform.d/plugin-cache" >> "$GITHUB_ENV"
+          BIN_DIR="$HOME/.local/bin" ./scripts/install-tools.sh conftest
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Start the emulator
+        run: make up
+
+      - name: Create the state bucket
+        run: make bootstrap
+
+      # The emulator starts empty, so a plan on its own would always say
+      # "create everything". Applying the base branch first makes the plan
+      # that follows a true difference, including anything deleted.
+      - name: Apply the base branch
+        run: |
+          git worktree add --detach "$RUNNER_TEMP/base" "origin/${{ github.base_ref }}"
+          for environment in $ENVIRONMENTS; do
+            for layer in foundation data messaging compute services; do
+              if [ -f "$RUNNER_TEMP/base/infra/environments/$environment/$layer/main.tf" ]; then
+                echo "::group::base: apply $environment/$layer"
+                make -C "$RUNNER_TEMP/base" apply ENV="$environment" LAYER="$layer"
+                echo "::endgroup::"
+              fi
+            done
+          done
+
+      - name: Plan the pull request and check policies
+        id: report
+        run: |
+          status=0
+          ./scripts/plan-report.sh plan-report.md $ENVIRONMENTS || status=$?
+          cat plan-report.md >> "$GITHUB_STEP_SUMMARY"
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+
+      - name: Comment the plan on the pull request
+        # A pull request from a fork gets a read-only token and cannot comment.
+        continue-on-error: true
+        run: ./scripts/pr-comment.sh "${{ github.event.pull_request.number }}" plan-report.md
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Fail if a plan failed or violated a policy
+        if: steps.report.outputs.status != '0'
+        run: |
+          echo "::error::A plan failed or violated a policy. See the plan comment on the pull request."
+          exit 1
+
+      - name: Rehearse the apply
+        run: |
+          for environment in $ENVIRONMENTS; do
+            echo "::group::apply $environment"
+            make apply-all ENV="$environment"
+            echo "::endgroup::"
+            make smoke ENV="$environment"
+          done
+
+      - name: Rehearse the teardown
+        run: |
+          for environment in $ENVIRONMENTS; do
+            echo "::group::destroy $environment"
+            make destroy-all ENV="$environment"
+            echo "::endgroup::"
+          done
+
+      - name: Show emulator logs on failure
+        if: failure()
+        run: docker compose logs --tail 200
+
+      - name: Stop the emulator
+        if: always()
+        run: make down
+
+  apply:
+    name: Apply
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the pinned Terraform version
+        id: version
+        run: echo "terraform=$(cat .terraform-version)" >> "$GITHUB_OUTPUT"
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ steps.version.outputs.terraform }}
+          terraform_wrapper: false
+
+      - name: Cache providers
+        uses: actions/cache@v4
+        with:
+          path: ~/.terraform.d/plugin-cache
+          key: terraform-providers-${{ hashFiles('infra/**/.terraform.lock.hcl') }}
+
+      - name: Use the provider cache
+        run: |
+          mkdir -p ~/.terraform.d/plugin-cache
+          echo "TF_PLUGIN_CACHE_DIR=$HOME/.terraform.d/plugin-cache" >> "$GITHUB_ENV"
+
+      - name: Start the emulator
+        run: make up
+
+      - name: Create the state bucket
+        run: make bootstrap
+
+      # Environments are applied in promotion order, and each must pass its
+      # smoke test before the next one starts.
+      - name: Apply and verify each environment
+        run: |
+          {
+            echo '## Applied'
+            echo
+            echo '| Environment | Result |'
+            echo '| --- | --- |'
+          } >> "$GITHUB_STEP_SUMMARY"
+          for environment in $ENVIRONMENTS; do
+            echo "::group::apply $environment"
+            make apply-all ENV="$environment"
+            echo "::endgroup::"
+            make smoke ENV="$environment"
+            echo "| \`$environment\` | applied, smoke test passed |" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - name: Show emulator logs on failure
+        if: failure()
+        run: docker compose logs --tail 200
+
+      - name: Stop the emulator
+        if: always()
+        run: make down
