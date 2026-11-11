@@ -8,6 +8,9 @@ What Meridian is made of and how the parts work together. Read the [domain model
 - [Quality goals](#quality-goals)
 - [The parts](#the-parts)
 - [How the parts talk](#how-the-parts-talk)
+- [Network](#network)
+- [Security](#security)
+- [Observability](#observability)
 
 ## System context
 
@@ -263,3 +266,72 @@ sequenceDiagram
 ```
 
 The commitment request is one of the few synchronous calls between services, because the buyer needs the answer and a purchase order must not be sent without it.
+
+## Network
+
+One VPC per environment, across three availability zones, in three tiers.
+
+```mermaid
+flowchart TB
+    internet([Internet])
+    subgraph vpc[VPC]
+        direction TB
+        subgraph public[Public subnets, one per zone]
+            alb_pub[Load balancer]
+            nat[NAT gateways]
+        end
+        subgraph private[Private subnets, one per zone]
+            eks[EKS nodes]
+            ecs[ECS tasks]
+            lambda[Lambda in VPC]
+            ec2[ERP gateway]
+        end
+        subgraph data[Data subnets, one per zone, no internet route]
+            rds[(RDS)]
+            cache[(ElastiCache)]
+        end
+        endpoints[VPC endpoints<br/>S3, DynamoDB, ECR, Secrets Manager, ...]
+    end
+
+    internet --> alb_pub
+    alb_pub --> eks
+    alb_pub --> ecs
+    private --> nat --> internet
+    private --> endpoints
+    eks --> rds
+    ecs --> rds
+    eks --> cache
+```
+
+| Tier    | Holds                        | Reachable from                              | Can reach                                                               |
+| ------- | ---------------------------- | ------------------------------------------- | ----------------------------------------------------------------------- |
+| Public  | Load balancers, NAT gateways | The internet, on 443 only                   | The private tier                                                        |
+| Private | All compute                  | The public tier's load balancer             | The data tier, AWS services through endpoints, the internet through NAT |
+| Data    | Databases and caches         | The private tier, on the database port only | Nothing                                                                 |
+
+Nothing that holds data has a route to the internet, and nothing that runs code has a public address.
+
+## Security
+
+| Concern                | Approach                                                                                                                                                                         |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Identity for people    | Cognito user pools, with groups mapped to the roles in the domain model                                                                                                          |
+| Identity for workloads | One IAM role per workload, assumed through the platform's native mechanism: task roles on ECS, service account roles on EKS, execution roles on Lambda, instance profiles on EC2 |
+| Authorization          | Checked at the gateway (is the caller signed in?) and again in the service (may this role do this?)                                                                              |
+| Encryption at rest     | KMS customer managed keys, one per data domain, with rotation                                                                                                                    |
+| Encryption in transit  | TLS everywhere, including inside the VPC                                                                                                                                         |
+| Secrets                | Secrets Manager, read at start-up by role. Nothing sensitive in images, code or environment files                                                                                |
+| Edge protection        | WAF in front of CloudFront and the API                                                                                                                                           |
+| Audit                  | CloudTrail for API activity, VPC flow logs for network traffic, AWS Config for configuration drift                                                                               |
+| Prevention             | Policy checks on every Terraform plan                                                                                                                                            |
+
+## Observability
+
+| Signal  | Collected by                                                                                                     | Used for                                     |
+| ------- | ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| Logs    | CloudWatch Logs, structured JSON with a correlation identifier that follows a request across services and events | Diagnosis                                    |
+| Metrics | CloudWatch metrics and Managed Prometheus for the cluster                                                        | Dashboards, alarms, autoscaling              |
+| Traces  | X-Ray                                                                                                            | Finding where time goes across services      |
+| Alarms  | CloudWatch alarms to SNS                                                                                         | Telling a person, with a link to the runbook |
+
+Every alarm has a runbook. An alarm nobody knows how to act on is noise.
