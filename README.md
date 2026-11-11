@@ -29,7 +29,7 @@ Meridian addresses each of these with a dedicated service, connected by events.
 | Data presentation | Analytics: data lake, queries and dashboards                          | Firehose, S3, Glue, Athena, CloudFront |
 | Integration       | ERP gateway: file exchange with a legacy finance system               | EC2, Systems Manager                   |
 
-All of it sits on a three-tier network across three availability zones, with least-privilege IAM, encryption with KMS, audit logging and central observability.
+All of it sits on a three-tier network across three availability zones, with least-privilege IAM, encryption with KMS, audit logging and central observability. See the [architecture overview](docs/architecture/overview.md).
 
 ## Infrastructure as code
 
