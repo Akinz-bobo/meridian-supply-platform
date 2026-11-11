@@ -37,6 +37,10 @@ help: ## Show this help
 doctor: ## Check that the required tools are installed
 	@./scripts/doctor.sh
 
+.PHONY: tools
+tools: ## Install the pinned analysis tools into ~/.local/bin
+	@./scripts/install-tools.sh
+
 .PHONY: up
 up: ## Start the AWS emulator and wait until it is healthy
 	docker compose up --detach
