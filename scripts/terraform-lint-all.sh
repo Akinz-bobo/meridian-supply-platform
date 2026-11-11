@@ -17,6 +17,11 @@ while IFS= read -r dir; do
     printf '%s\n' "$output" | sed 's/^/        /'
     failed=1
   fi
-done < <(find "$root/infra" -name main.tf -not -path '*/.terraform/*' -not -path '*/_shared/*' -printf '%h\n' | sort)
+done < <(
+  # Examples are a single file showing how to call a module. They are
+  # validated, but not held to the module structure rules.
+  find "$root/infra" -name main.tf -not -path '*/.terraform/*' -not -path '*/_shared/*' \
+    -not -path '*/examples/*' -printf '%h\n' | sort
+)
 
 exit "$failed"
