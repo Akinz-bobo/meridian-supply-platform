@@ -1,0 +1,54 @@
+# Optional local hooks. Install with: pipx install pre-commit && pre-commit install
+#
+# They run the same commands as CI, on the files you are committing, so a
+# problem is found before it is pushed. CI remains the gate: nothing here
+# can be skipped there.
+
+repos:
+  - repo: local
+    hooks:
+      - id: terraform-fmt
+        name: terraform fmt
+        entry: terraform fmt -recursive infra
+        language: system
+        files: \.(tf|tfvars|tftest\.hcl)$
+        pass_filenames: false
+
+      - id: terraform-validate
+        name: terraform validate
+        entry: ./scripts/terraform-validate-all.sh
+        language: system
+        files: ^infra/
+        pass_filenames: false
+
+      - id: tflint
+        name: tflint
+        entry: ./scripts/terraform-lint-all.sh
+        language: system
+        files: ^infra/
+        pass_filenames: false
+
+      - id: trivy
+        name: trivy config
+        entry: trivy config --config trivy.yaml infra
+        language: system
+        files: ^infra/
+        pass_filenames: false
+
+      - id: prettier
+        name: prettier
+        entry: npx --yes prettier@3 --check
+        language: system
+        types_or: [markdown, yaml, json]
+
+      - id: shellcheck
+        name: shellcheck
+        entry: shellcheck
+        language: system
+        types: [shell]
+
+      - id: no-state-files
+        name: no Terraform state or plan files
+        entry: Terraform state and plan files must never be committed
+        language: fail
+        files: \.(tfstate|tfstate\..*|tfplan)$
