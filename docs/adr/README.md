@@ -18,3 +18,4 @@ Start from the [template](template.md).
 | [0006](0006-event-backbone-and-messaging-conventions.md) | Use EventBridge with a queue per consumer, and one set of messaging conventions | Accepted |
 | [0007](0007-environments-and-account-isolation.md)       | Three environments, one AWS account each                                        | Accepted |
 | [0008](0008-layered-state-per-environment.md)            | Split each environment's state into layers                                      | Accepted |
+| [0009](0009-remote-state-in-s3-with-native-locking.md)   | Keep state in one S3 bucket with native locking                                 | Accepted |
