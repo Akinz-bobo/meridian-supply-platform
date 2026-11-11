@@ -30,3 +30,5 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check that every relative Markdown link points at a file that exists
         run: python3 scripts/check-links.py
+      - name: Check that every decision record is in the index
+        run: python3 scripts/check-adr-index.py
