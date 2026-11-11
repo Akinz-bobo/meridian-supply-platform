@@ -8,6 +8,7 @@ Start from the [template](template.md).
 
 ## Index
 
-| Number                                        | Decision                      | Status   |
-| --------------------------------------------- | ----------------------------- | -------- |
-| [0001](0001-record-architecture-decisions.md) | Record architecture decisions | Accepted |
+| Number                                          | Decision                                 | Status   |
+| ----------------------------------------------- | ---------------------------------------- | -------- |
+| [0001](0001-record-architecture-decisions.md)   | Record architecture decisions            | Accepted |
+| [0002](0002-develop-against-an-aws-emulator.md) | Develop and test against an AWS emulator | Accepted |
