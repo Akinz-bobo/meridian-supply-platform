@@ -3,6 +3,10 @@
 # AWS API and not Terraform.
 #
 # Usage: smoke-test.sh <environment-directory>
+#
+# The jq programs in this file are single-quoted on purpose: $e, $a and $t
+# are jq variables set with --arg, not shell variables.
+# shellcheck disable=SC2016
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
