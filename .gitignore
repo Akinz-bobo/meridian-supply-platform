@@ -9,6 +9,10 @@ override.tf.json
 *.auto.tfvars
 !example.auto.tfvars
 
+# Lock files are committed for state layers, which are applied, and not for
+# modules, whose callers decide the provider versions.
+infra/modules/**/.terraform.lock.hcl
+
 # Dependencies and build output
 node_modules/
 dist/
