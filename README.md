@@ -59,21 +59,22 @@ See [local development](docs/guides/local-development.md).
 
 ## Documentation
 
-| Document                                                              | What it covers                                                                  |
-| --------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| [Delivery process](docs/planning/delivery-process.md)                 | How work moves from issue to merged pull request                                |
-| [Decision records](docs/adr/README.md)                                | Why each significant choice was made                                            |
-| [Domain model](docs/domain/domain-model.md)                           | The business, its concepts, rules and lifecycles                                |
-| [Glossary](docs/domain/glossary.md)                                   | The words used here, with one meaning each                                      |
-| [Architecture overview](docs/architecture/overview.md)                | Context, services, data ownership, event flows and the AWS service catalogue    |
-| [Event catalogue](docs/architecture/events.md)                        | Every planned event, its producer and its consumers                             |
-| [Environments, naming and tagging](docs/architecture/environments.md) | How environments differ, the naming and tagging standard and the address plan   |
-| [Roadmap](docs/planning/roadmap.md)                                   | Milestones, their order, dependencies and status                                |
-| [Local development](docs/guides/local-development.md)                 | Run the emulator on your machine: setup, commands, troubleshooting              |
-| [Emulator differences](docs/architecture/emulator-differences.md)     | Where the emulator differs from AWS, and how each difference is handled         |
-| [Infrastructure guide](infra/README.md)                               | Terraform layout, commands, safety and how to add a layer                       |
-| [Runbook: Terraform state](docs/runbooks/terraform-state.md)          | Stuck locks, rolling state back, drift and losing the bootstrap state           |
-| [Static analysis](docs/guides/static-analysis.md)                     | The checks that run before anything is provisioned, and how to handle a failure |
+| Document                                                              | What it covers                                                                                        |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| [Delivery process](docs/planning/delivery-process.md)                 | How work moves from issue to merged pull request                                                      |
+| [Decision records](docs/adr/README.md)                                | Why each significant choice was made                                                                  |
+| [Domain model](docs/domain/domain-model.md)                           | The business, its concepts, rules and lifecycles                                                      |
+| [Glossary](docs/domain/glossary.md)                                   | The words used here, with one meaning each                                                            |
+| [Architecture overview](docs/architecture/overview.md)                | Context, services, data ownership, event flows and the AWS service catalogue                          |
+| [Event catalogue](docs/architecture/events.md)                        | Every planned event, its producer and its consumers                                                   |
+| [Environments, naming and tagging](docs/architecture/environments.md) | How environments differ, the naming and tagging standard and the address plan                         |
+| [Roadmap](docs/planning/roadmap.md)                                   | Milestones, their order, dependencies and status                                                      |
+| [Local development](docs/guides/local-development.md)                 | Run the emulator on your machine: setup, commands, troubleshooting                                    |
+| [Emulator differences](docs/architecture/emulator-differences.md)     | Where the emulator differs from AWS, and how each difference is handled                               |
+| [Infrastructure guide](infra/README.md)                               | Terraform layout, commands, safety and how to add a layer                                             |
+| [Runbook: Terraform state](docs/runbooks/terraform-state.md)          | Stuck locks, rolling state back, drift and losing the bootstrap state                                 |
+| [Static analysis](docs/guides/static-analysis.md)                     | The checks that run before anything is provisioned, and how to handle a failure                       |
+| [Policy as code](docs/guides/policy-as-code.md)                       | The organisation's rules, checked against every plan: tags, naming, regions, IAM, protected resources |
 
 Changes are summarised in the [changelog](CHANGELOG.md).
 

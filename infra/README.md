@@ -10,6 +10,7 @@ infra/
   modules/           reusable building blocks
     context/         naming and tagging, used by every other module
     state-bucket/    the encrypted, versioned bucket that holds state
+  policies/          organisation rules, checked against every plan
   environments/
     _shared/         provider, version and variable files, defined once
     dev/
@@ -37,6 +38,7 @@ make apply ENV=staging
 make destroy ENV=staging
 make validate                    # format check and validate everything
 make test                        # module tests
+make policy                      # plan a layer and check it against the policies
 ```
 
 By default these target the local emulator. To target real AWS with your own credentials:
