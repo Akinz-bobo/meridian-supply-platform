@@ -56,6 +56,7 @@ make scan       # trivy, failing on medium severity and above
 make scan-all   # trivy, reporting everything including low, without failing
 make test       # module tests
 make policy-test  # tests of the policies
+make docs-check   # module READMEs are up to date
 ```
 
 To run them automatically on commit, install the optional hooks:
@@ -109,11 +110,11 @@ There are no suppressions in the repository at the time of writing.
 
 ## Tool versions
 
-| Tool                    | Pinned in                                                    | Installed by                                   |
-| ----------------------- | ------------------------------------------------------------ | ---------------------------------------------- |
-| Terraform               | [`.terraform-version`](../../.terraform-version)             | You, or a version manager that reads that file |
-| tflint, trivy, conftest | [`scripts/install-tools.sh`](../../scripts/install-tools.sh) | `make tools`                                   |
-| tflint AWS ruleset      | [`.tflint.hcl`](../../.tflint.hcl)                           | `tflint --init`, run by `make lint`            |
+| Tool                                    | Pinned in                                                    | Installed by                                   |
+| --------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------- |
+| Terraform                               | [`.terraform-version`](../../.terraform-version)             | You, or a version manager that reads that file |
+| tflint, trivy, conftest, terraform-docs | [`scripts/install-tools.sh`](../../scripts/install-tools.sh) | `make tools`                                   |
+| tflint AWS ruleset                      | [`.tflint.hcl`](../../.tflint.hcl)                           | `tflint --init`, run by `make lint`            |
 
 `make tools` downloads each release, verifies it against the checksum file published with it, and installs it into `~/.local/bin`. CI uses the same script, so a check cannot pass locally and fail in CI because of a version difference.
 

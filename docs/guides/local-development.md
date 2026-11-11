@@ -10,13 +10,13 @@ How to run the platform's infrastructure on your own machine. Nothing here needs
 
 ## What you need
 
-| Tool                    | Minimum                                                         | Used for                                       |
-| ----------------------- | --------------------------------------------------------------- | ---------------------------------------------- |
-| Docker with Compose     | 24.0, Compose 2.20                                              | Runs the emulator and the containers it starts |
-| Terraform               | The version in [`.terraform-version`](../../.terraform-version) | Provisioning                                   |
-| AWS CLI                 | 2.13                                                            | Inspecting what was provisioned                |
-| make, curl, jq, python3 | Any recent version                                              | Developer commands and checks                  |
-| tflint, trivy, conftest | Pinned. Install with `make tools`                               | [Static analysis](static-analysis.md)          |
+| Tool                                    | Minimum                                                         | Used for                                       |
+| --------------------------------------- | --------------------------------------------------------------- | ---------------------------------------------- |
+| Docker with Compose                     | 24.0, Compose 2.20                                              | Runs the emulator and the containers it starts |
+| Terraform                               | The version in [`.terraform-version`](../../.terraform-version) | Provisioning                                   |
+| AWS CLI                                 | 2.13                                                            | Inspecting what was provisioned                |
+| make, curl, jq, python3                 | Any recent version                                              | Developer commands and checks                  |
+| tflint, trivy, conftest, terraform-docs | Pinned. Install with `make tools`                               | [Static analysis](static-analysis.md)          |
 
 About 4 GB of free memory is enough for the foundation milestones. The full platform, with an EKS cluster and several databases running as containers, will need more. That figure will be measured and recorded when those milestones land.
 

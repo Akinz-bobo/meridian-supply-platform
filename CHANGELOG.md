@@ -15,6 +15,7 @@ Notable changes, newest first. The format follows [Keep a Changelog](https://kee
 - Static analysis: tflint with the AWS ruleset, trivy security scanning, optional pre-commit hooks, a checksum-verifying installer for pinned tools (`make tools`), `make lint`, `scan` and `check`, and CI jobs for both.
 - Policy as code: 13 rules in Rego for tags, naming, approved regions, IAM and protected resources, with 39 tests, `make policy` and `make policy-test`, and a guide documenting each rule.
 - Infrastructure pipeline: on a pull request, a plan against the base branch's state, a policy check, a plan comment and an apply-and-destroy rehearsal. On merge, an apply of dev, staging and production in order, each gated by a smoke test.
+- Module standards, generated module READMEs (`make docs`, `make docs-check`), a usage example per module, and `make module` to create a module skeleton.
 
 ### Fixed
 
