@@ -75,6 +75,7 @@ See [local development](docs/guides/local-development.md).
 | [Runbook: Terraform state](docs/runbooks/terraform-state.md)          | Stuck locks, rolling state back, drift and losing the bootstrap state                                 |
 | [Static analysis](docs/guides/static-analysis.md)                     | The checks that run before anything is provisioned, and how to handle a failure                       |
 | [Policy as code](docs/guides/policy-as-code.md)                       | The organisation's rules, checked against every plan: tags, naming, regions, IAM, protected resources |
+| [The infrastructure pipeline](docs/guides/pipeline.md)                | Plan and rehearsal on pull requests, apply on merge, and how it maps to real AWS                      |
 
 Changes are summarised in the [changelog](CHANGELOG.md).
 
