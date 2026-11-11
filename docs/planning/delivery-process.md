@@ -10,6 +10,9 @@ How a piece of work moves from an idea to a change on `main`. The process is the
 - [Pull requests](#pull-requests)
 - [Definition of ready](#definition-of-ready)
 - [Definition of done](#definition-of-done)
+- [Bugs and incidents](#bugs-and-incidents)
+- [Releases](#releases)
+- [Roles](#roles)
 
 ## Principles
 
@@ -135,3 +138,45 @@ An issue is closed when:
 - [ ] for infrastructure: the change applies cleanly from an empty environment, and destroying it leaves nothing behind
 - [ ] no secret, account identifier or personal data was added to the repository
 - [ ] follow-up work is captured as new issues, not left as comments in code
+
+## Bugs and incidents
+
+```mermaid
+flowchart LR
+    found([Defect found]) --> report[Bug issue<br/>with steps to reproduce]
+    report --> test[Failing test or check<br/>that captures it]
+    test --> fix[Fix on a fix/ branch]
+    fix --> pr[Pull request]
+    pr --> verify[Test passes,<br/>regression guarded]
+    verify --> learn{Worth a wider lesson?}
+    learn -- yes --> doc[Runbook or decision record updated]
+    learn -- no --> done([Closed])
+    doc --> done
+```
+
+- A defect found while working on something else gets its own issue and its own pull request. It is not folded into unrelated work, so the history shows what was wrong and what fixed it.
+- The fix starts with a test or check that fails for the right reason. That test stays, so the defect cannot return unnoticed.
+- If the defect reveals a gap in a standard, a policy or a runbook, that document is updated in the same pull request.
+
+## Releases
+
+The repository is versioned as a whole with [Semantic Versioning](https://semver.org). A tag is cut when a milestone closes:
+
+| Milestone | Tag |
+| --- | --- |
+| M0 to M5 (foundations) | `v0.1.0` to `v0.6.0` |
+| M6 to M11 (services and operations) | `v0.7.0` to `v0.12.0` |
+| M12 | `v1.0.0` |
+
+Each tag has release notes generated from the merged pull requests and a changelog entry written by hand, because a list of commits is not an explanation.
+
+## Roles
+
+On a team these are different people. Here they are different hats, and the process keeps them separate on purpose: the checks, the plan review and the acceptance criteria do not care who wrote the change.
+
+| Role | Responsibility |
+| --- | --- |
+| Author | Writes the change, its tests and its documentation |
+| Reviewer | Reads the diff and the plan, checks it against the issue |
+| Pipeline | Runs every check, applies infrastructure, refuses anything failing |
+| Owner | Decides priority and accepts the milestone |
