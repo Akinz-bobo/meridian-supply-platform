@@ -2,12 +2,6 @@
 # emulator, and they fail if a protection on the state bucket is removed.
 
 mock_provider "aws" {
-  mock_data "aws_caller_identity" {
-    defaults = {
-      account_id = "444444444444"
-    }
-  }
-
   mock_data "aws_iam_policy_document" {
     defaults = {
       json = "{\"Version\":\"2012-10-17\",\"Statement\":[]}"
