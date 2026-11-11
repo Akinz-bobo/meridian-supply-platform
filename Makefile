@@ -131,8 +131,20 @@ policy-test: ## Run the tests of the policies themselves
 policy: init ## Plan ENV and LAYER and check the plan against the policies
 	@./scripts/terraform-policy.sh $(TF_DIR) $(TF_VARS)
 
+.PHONY: docs
+docs: ## Generate the README of every module from its code
+	@./scripts/terraform-docs.sh
+
+.PHONY: docs-check
+docs-check: ## Fail if a module README is out of date
+	@./scripts/terraform-docs.sh --check
+
+.PHONY: module
+module: ## Create the skeleton of a new module: make module NAME=sqs-consumer-queue
+	@./scripts/new-module.sh $(NAME)
+
 .PHONY: check
-check: validate lint scan test policy-test ## Every infrastructure check that needs no emulator
+check: validate lint scan test policy-test docs-check ## Every infrastructure check that needs no emulator
 
 .PHONY: test
 test: ## Run the tests of every module that has them
