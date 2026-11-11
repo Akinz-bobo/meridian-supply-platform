@@ -6,6 +6,7 @@ What Meridian is made of and how the parts work together. Read the [domain model
 
 - [System context](#system-context)
 - [Quality goals](#quality-goals)
+- [The parts](#the-parts)
 
 ## System context
 
@@ -59,3 +60,107 @@ The properties the design is optimised for, in priority order. When two conflict
 | 4   | **Operability**                          | A problem is visible, diagnosable and recoverable by someone who did not write the code | Structured logs, metrics, traces, alarms, runbooks, everything as code                                                            | Runbook drills                                 |
 | 5   | **Cost awareness**                       | Pay for load, not for idle. Know what each part costs                                   | Serverless and scale-to-zero where load is bursty, budgets and tags, a cost model                                                 | Tag policy, cost estimates per environment     |
 | 6   | **Changeability**                        | A new service or a new environment is routine                                           | Reusable modules, one event backbone, documented standards                                                                        | A new environment is one directory             |
+
+## The parts
+
+Every service, data store and channel. Solid arrows are requests, dotted arrows are events.
+
+```mermaid
+flowchart TB
+    users([People]) --> cdn[CloudFront + WAF]
+    scanners[[Scanners]] --> apigw
+    suppliers([Suppliers]) --> uploads
+
+    cdn --> web[Web dashboard<br/>S3 static site]
+    cdn --> apigw[API Gateway<br/>Cognito authorizer]
+
+    subgraph ingest[Ingestion: serverless]
+        apigw --> scanfn[Scan intake<br/>Lambda]
+        scanfn --> stream[(Kinesis<br/>movement stream)]
+        uploads[(S3<br/>supplier uploads)] --> validate[File validation<br/>Lambda]
+        validate --> curation[Curation workflow<br/>Step Functions]
+    end
+
+    subgraph ecs[ECS Fargate]
+        catalog[Catalog service]
+        planning[Planning jobs<br/>scheduled tasks]
+    end
+
+    subgraph eks[EKS]
+        inventory[Inventory service]
+        procurement[Procurement service]
+        budget[Budget service]
+    end
+
+    apigw --> alb[Internal load balancer]
+    alb --> catalog
+    alb --> inventory
+    alb --> procurement
+    alb --> budget
+    curation --> catalog
+
+    stream --> inventory
+
+    catalog --> pgcat[(RDS PostgreSQL<br/>catalog)]
+    procurement --> pgpro[(RDS PostgreSQL<br/>procurement)]
+    budget --> pgbud[(RDS PostgreSQL<br/>budget)]
+    inventory --> ddb[(DynamoDB<br/>movement ledger,<br/>stock levels)]
+    inventory --> cache[(ElastiCache<br/>stock read cache)]
+
+    bus{{EventBridge bus}}
+    catalog -.-> bus
+    inventory -.-> bus
+    procurement -.-> bus
+    budget -.-> bus
+    planning -.-> bus
+    bus -.-> queues[(SQS queues<br/>one per consumer,<br/>each with a dead-letter queue)]
+    queues -.-> procurement
+    queues -.-> budget
+    queues -.-> inventory
+    queues -.-> planning
+    bus -.-> notify[SNS + SES<br/>notifications]
+
+    bus -.-> firehose[Firehose]
+    stream -.-> firehose
+    firehose --> lake[(S3 data lake)]
+    lake --> glue[Glue catalog]
+    glue --> athena[Athena]
+    athena --> reportfn[Reporting API<br/>Lambda]
+    apigw --> reportfn
+
+    subgraph legacy[EC2]
+        gateway[ERP gateway<br/>Auto Scaling group of one]
+    end
+    queues -.-> gateway
+    gateway --> exchange[(S3<br/>file exchange)]
+    gateway -.-> bus
+```
+
+### Services
+
+| Service               | Responsibility                                           | Compute                                             | Data                                   | Reason for the compute choice                                                                           |
+| --------------------- | -------------------------------------------------------- | --------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| **Catalog**           | Product master, suppliers, the result of curation        | ECS Fargate                                         | RDS PostgreSQL                         | Steady, modest load. A long-running container with no cluster to operate                                |
+| **Curation workflow** | Validate, match, route to a steward, publish             | Step Functions and Lambda                           | S3, catalog API                        | A multi-step process with waits for a human. A state machine makes each step visible and retryable      |
+| **Scan intake**       | Accept and validate movement events, write to the stream | Lambda behind API Gateway                           | Kinesis                                | Bursty and stateless. Scales to the burst and costs nothing between shifts                              |
+| **Inventory**         | Movement ledger, stock levels, FEFO allocation, expiry   | EKS                                                 | DynamoDB, ElastiCache                  | The busiest service. Benefits from fine-grained autoscaling, pod disruption budgets and rolling deploys |
+| **Procurement**       | Purchase orders and goods receipts                       | EKS                                                 | RDS PostgreSQL                         | Transactional, relational, and co-evolves with inventory and budget                                     |
+| **Budget**            | Budgets, commitments, approvals                          | EKS                                                 | RDS PostgreSQL                         | Strong consistency on money. Relational transactions                                                    |
+| **Planning**          | Forecast, reorder points, proposals                      | ECS scheduled tasks, orchestrated by Step Functions | S3, Athena, catalog and inventory APIs | Batch work that runs for minutes on a schedule. No reason to keep it running                            |
+| **Reporting API**     | Serve dashboard queries                                  | Lambda                                              | Athena over the data lake              | Infrequent, read-only requests                                                                          |
+| **Web dashboard**     | Charts and tables for every role                         | Static site on S3 behind CloudFront                 | None                                   | No servers to run                                                                                       |
+| **ERP gateway**       | Exchange files with the finance system                   | EC2                                                 | S3                                     | The finance system's client software needs a persistent host and a fixed address                        |
+
+The rule behind these choices is recorded in a decision record (tracked in [#6](https://github.com/Akinz-bobo/meridian-supply-platform/issues/6)).
+
+### Data ownership
+
+Each service owns its store. No service reads another's database. Data crosses a boundary through an API call or an event, never through a shared table.
+
+| Store                                    | Owner                            | Why this technology                                                                                               |
+| ---------------------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| RDS PostgreSQL, one database per service | Catalog, procurement, budget     | Relational data with transactions and constraints                                                                 |
+| DynamoDB                                 | Inventory                        | Very high write volume with simple access patterns by batch and zone. Conditional writes enforce "never negative" |
+| ElastiCache                              | Inventory                        | Stock lookups are read far more often than they change                                                            |
+| S3                                       | Curation, analytics, ERP gateway | Files, and the data lake                                                                                          |
+| Kinesis                                  | Scan intake                      | Ordered, replayable stream of movements, per warehouse                                                            |
