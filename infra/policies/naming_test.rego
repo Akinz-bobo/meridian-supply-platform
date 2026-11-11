@@ -1,0 +1,74 @@
+package terraform.naming_test
+
+import rego.v1
+
+import data.lib.fixtures
+import data.terraform.naming
+
+test_allows_a_name_with_the_environment_prefix if {
+	rc := fixtures.create("aws_sqs_queue", "q", {"name": "meridian-prod-budget-goods-received-dlq"})
+	count(naming.deny) == 0 with input as fixtures.plan("prod", [rc])
+}
+
+test_allows_a_fifo_queue_suffix if {
+	rc := fixtures.create("aws_sqs_queue", "q", {"name": "meridian-prod-inventory-movements.fifo"})
+	count(naming.deny) == 0 with input as fixtures.plan("prod", [rc])
+}
+
+test_denies_a_name_without_the_prefix if {
+	rc := fixtures.create("aws_s3_bucket", "b", {"bucket": "my-test-bucket"})
+	messages := naming.deny with input as fixtures.plan("prod", [rc])
+	some msg in messages
+	contains(msg, "POL-NAME-1")
+}
+
+test_denies_a_name_carrying_another_environments_prefix if {
+	rc := fixtures.create("aws_dynamodb_table", "t", {"name": "meridian-dev-inventory-movements"})
+	messages := naming.deny with input as fixtures.plan("prod", [rc])
+	some msg in messages
+	contains(msg, "POL-NAME-1")
+}
+
+test_denies_upper_case_and_underscores if {
+	rc := fixtures.create("aws_iam_role", "r", {"name": "meridian-prod-Catalog_TaskRole"})
+	messages := naming.deny with input as fixtures.plan("prod", [rc])
+	some msg in messages
+	contains(msg, "POL-NAME-2")
+}
+
+test_allows_a_parameter_under_the_environment_path if {
+	rc := fixtures.create("aws_ssm_parameter", "p", {"name": "/meridian/prod/network/vpc-id"})
+	count(naming.deny) == 0 with input as fixtures.plan("prod", [rc])
+}
+
+test_denies_a_parameter_outside_the_environment_path if {
+	rc := fixtures.create("aws_ssm_parameter", "p", {"name": "/config/vpc-id"})
+	messages := naming.deny with input as fixtures.plan("prod", [rc])
+	some msg in messages
+	contains(msg, "POL-NAME-3")
+}
+
+test_denies_a_key_alias_without_the_prefix if {
+	rc := fixtures.create("aws_kms_alias", "k", {"name": "alias/data"})
+	messages := naming.deny with input as fixtures.plan("prod", [rc])
+	some msg in messages
+	contains(msg, "POL-NAME-4")
+}
+
+test_allows_a_key_alias_with_the_prefix if {
+	rc := fixtures.create("aws_kms_alias", "k", {"name": "alias/meridian-prod-data"})
+	count(naming.deny) == 0 with input as fixtures.plan("prod", [rc])
+}
+
+test_ignores_types_that_are_not_named_by_us if {
+	rc := fixtures.create("aws_route_table", "rt", {"vpc_id": "vpc-123"})
+	count(naming.deny) == 0 with input as fixtures.plan("prod", [rc])
+}
+
+test_skips_a_name_that_is_not_known_until_apply if {
+	rc := object.union(
+		fixtures.create("aws_s3_bucket", "b", {}),
+		{"change": {"actions": ["create"], "after": {}, "after_unknown": {"bucket": true}}},
+	)
+	count(naming.deny) == 0 with input as fixtures.plan("prod", [rc])
+}
