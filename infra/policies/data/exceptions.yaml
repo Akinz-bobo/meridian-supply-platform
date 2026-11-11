@@ -1,0 +1,11 @@
+# Approved exceptions to POL-PROTECT-1.
+#
+# Add an entry in the same pull request as the change that needs it, and
+# remove it in the next one. Each entry needs every field:
+#
+#   - address: module.catalog_db.aws_db_instance.this
+#     environment: stg
+#     reason: Why this resource is being deleted or replaced on purpose.
+#     issue: 123
+exceptions:
+  protected_deletes: []
