@@ -55,11 +55,11 @@ check required make 4.0 '' make --version
 check required curl 7.0 '' curl --version
 check required jq 1.6 '' jq --version
 check required python3 3.10 'Used by the documentation checks.' python3 --version
+check required tflint 0.60 'Install with: make tools' tflint --version
+check required trivy 0.60 'Install with: make tools' trivy --version
 
 echo
 echo 'Needed by later milestones'
-check optional tflint 0.50 'Milestone 1: static analysis.' tflint --version
-check optional trivy 0.50 'Milestone 1: security scanning.' trivy --version
 check optional conftest 0.50 'Milestone 1: policy as code.' conftest --version
 check optional terraform-docs 0.17 'Milestone 1: module documentation.' terraform-docs --version
 check optional kubectl 1.29 'Milestone 5: EKS.' kubectl version --client
