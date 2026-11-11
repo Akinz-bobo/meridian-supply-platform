@@ -13,13 +13,6 @@ services:
     volumes:
       # Lets the emulator start real containers for RDS, ECS, EKS, EC2 and Lambda.
       - /var/run/docker.sock:/var/run/docker.sock
-    healthcheck:
-      test:
-        [
-          'CMD-SHELL',
-          'wget -qO- http://127.0.0.1:4566/_floci/health >/dev/null 2>&1 || curl -fsS http://127.0.0.1:4566/_floci/health >/dev/null',
-        ]
-      interval: 5s
-      timeout: 3s
-      retries: 20
+    # No healthcheck here: the image defines its own, and it has no curl or wget
+    # to build another one from.
     restart: unless-stopped
