@@ -1,0 +1,25 @@
+# Local AWS emulator. See docs/guides/local-development.md.
+#
+# The version is pinned on purpose: an emulator upgrade can change behaviour,
+# so it goes through a pull request like any other change.
+name: meridian
+
+services:
+  floci:
+    image: floci/floci:2.4.0
+    container_name: meridian-floci
+    ports:
+      - '127.0.0.1:${FLOCI_PORT:-4566}:4566'
+    volumes:
+      # Lets the emulator start real containers for RDS, ECS, EKS, EC2 and Lambda.
+      - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'wget -qO- http://127.0.0.1:4566/_floci/health >/dev/null 2>&1 || curl -fsS http://127.0.0.1:4566/_floci/health >/dev/null',
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
