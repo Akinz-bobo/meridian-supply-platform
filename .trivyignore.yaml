@@ -1,0 +1,7 @@
+# Findings that are deliberately not fixed.
+#
+# Each entry needs: the rule id, the paths it applies to, and a statement of
+# why the finding does not apply or why the risk is accepted. An entry with
+# no reason is not accepted in review.
+
+misconfigurations: []

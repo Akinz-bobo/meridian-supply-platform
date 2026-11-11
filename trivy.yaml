@@ -1,0 +1,28 @@
+# Security scanning of the Terraform in this repository.
+# Run with: make scan
+
+# Fail on anything of medium severity or above. Low findings are reported
+# by `make scan-all` and reviewed, but do not block a merge.
+severity:
+  - MEDIUM
+  - HIGH
+  - CRITICAL
+
+exit-code: 1
+
+scan:
+  scanners:
+    - misconfig
+  skip-dirs:
+    - '**/.terraform'
+
+misconfiguration:
+  scanners:
+    - terraform
+  terraform:
+    # Evaluate modules with the values each environment actually passes.
+    vars:
+      - infra/environments/production/env.tfvars
+
+# Every suppressed finding is listed in this file with the reason.
+ignorefile: .trivyignore.yaml
