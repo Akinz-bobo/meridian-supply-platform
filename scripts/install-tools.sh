@@ -40,7 +40,12 @@ fetch() {
 
 # installed <binary> <version>: true when that version is already in BIN_DIR.
 installed() {
-  [ -x "$BIN_DIR/$1" ] && "$BIN_DIR/$1" --version 2>/dev/null | grep --quiet --fixed-strings "$2"
+  [ -x "$BIN_DIR/$1" ] || return 1
+  # Capture first: piping straight into `grep --quiet` can close the pipe
+  # early and make the tool exit non-zero under pipefail.
+  local version
+  version="$("$BIN_DIR/$1" --version 2>/dev/null || true)"
+  grep --quiet --fixed-strings "$2" <<<"$version"
 }
 
 install_tflint() {
