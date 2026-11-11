@@ -8,6 +8,8 @@ How a piece of work moves from an idea to a change on `main`. The process is the
 - [Branches](#branches)
 - [Commits](#commits)
 - [Pull requests](#pull-requests)
+- [Definition of ready](#definition-of-ready)
+- [Definition of done](#definition-of-done)
 
 ## Principles
 
@@ -111,3 +113,25 @@ A pull request:
 - for infrastructure, includes the plan summary and calls out anything destroyed or replaced
 
 Pull requests are merged by **rebase**. `main` stays linear, every commit on it is one that was reviewed, and `git bisect` works. Squash merging would discard the step-by-step history, and merge commits would add noise without information.
+
+## Definition of ready
+
+An issue can be started when:
+
+- [ ] the context explains why it matters
+- [ ] the scope says what is in and what is out
+- [ ] the acceptance criteria can each be checked objectively
+- [ ] anything it depends on is merged, or the dependency is named
+- [ ] it is small enough for one pull request
+
+## Definition of done
+
+An issue is closed when:
+
+- [ ] every acceptance criterion is met
+- [ ] the change is merged to `main` with all checks passing
+- [ ] new behaviour has tests, including the failure cases
+- [ ] documentation is updated: module README, architecture page, runbook or decision record, whichever applies
+- [ ] for infrastructure: the change applies cleanly from an empty environment, and destroying it leaves nothing behind
+- [ ] no secret, account identifier or personal data was added to the repository
+- [ ] follow-up work is captured as new issues, not left as comments in code
