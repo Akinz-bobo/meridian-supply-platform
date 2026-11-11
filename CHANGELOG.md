@@ -8,6 +8,9 @@ Notable changes, newest first. The format follows [Keep a Changelog](https://kee
 
 - Local emulator stack: a pinned Floci in `compose.yaml`, `make up`, `down`, `status`, `logs` and `doctor`, a local development guide, and a CI job that proves the emulator boots.
 - A record of emulator differences from AWS and how each is handled.
+- Terraform layout: a `context` module for naming and tagging with tests, a shared provider configuration with one switch between the emulator and AWS, and the `foundation` state layer for dev, staging and production.
+- `make plan`, `apply`, `destroy`, `validate` and `test`, and CI for formatting, validation and module tests.
+- Decision record 0008: layered state per environment.
 
 ## [0.1.0] - 2026-11-11
 
