@@ -20,8 +20,13 @@ TF_VARS := -var-file=../env.tfvars
 # TARGET=emulator (the default) points Terraform at the local emulator.
 # TARGET=aws leaves the provider on real AWS, using your own credentials.
 TARGET ?= emulator
+SHARED := infra/environments/_shared
+BACKEND := -backend-config=$(CURDIR)/$(SHARED)/backend.hcl \
+	-backend-config=key=$(ENV)/$(LAYER)/terraform.tfstate
 ifeq ($(TARGET),emulator)
 export TF_VAR_aws_endpoint_url := $(AWS_ENDPOINT_URL)
+BACKEND += -backend-config=$(CURDIR)/$(SHARED)/backend.emulator.hcl \
+	-backend-config='endpoints={s3="$(AWS_ENDPOINT_URL)"}'
 endif
 
 .PHONY: help
@@ -54,9 +59,14 @@ status: ## Show whether the emulator is running and which services answer
 logs: ## Follow the emulator logs
 	docker compose logs --follow floci
 
+.PHONY: bootstrap
+bootstrap: ## Create the remote state bucket (once, before the first apply)
+	terraform -chdir=infra/bootstrap init -input=false
+	terraform -chdir=infra/bootstrap apply -input=false -auto-approve -var-file=bootstrap.tfvars
+
 .PHONY: init
-init: ## Initialise Terraform for ENV and LAYER
-	$(TF) init -input=false
+init: ## Initialise Terraform for ENV and LAYER against the remote state
+	$(TF) init -input=false -reconfigure $(BACKEND)
 
 .PHONY: plan
 plan: init ## Show what would change for ENV and LAYER
