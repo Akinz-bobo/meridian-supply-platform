@@ -97,6 +97,17 @@ validate: ## Check formatting and validate every layer and module
 lint: ## Lint every layer and module with tflint
 	@./scripts/terraform-lint-all.sh
 
+.PHONY: scan
+scan: ## Scan the Terraform for security misconfigurations (medium and above)
+	trivy config --config trivy.yaml infra
+
+.PHONY: scan-all
+scan-all: ## Scan and report every finding, including low severity, without failing
+	trivy config --config trivy.yaml --severity LOW,MEDIUM,HIGH,CRITICAL --exit-code 0 infra
+
+.PHONY: check
+check: validate lint scan test ## Everything CI runs for infrastructure
+
 .PHONY: test
 test: ## Run the tests of every module that has them
 	@./scripts/terraform-test-all.sh
