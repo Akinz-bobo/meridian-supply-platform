@@ -12,6 +12,11 @@ Notable changes, newest first. The format follows [Keep a Changelog](https://kee
 - `make plan`, `apply`, `destroy`, `validate` and `test`, and CI for formatting, validation and module tests.
 - Decision record 0008: layered state per environment.
 - Remote state: a tested `state-bucket` module, a bootstrap stack, a shared backend configuration with S3-native locking, `make bootstrap`, decision record 0009 and a state runbook.
+- Static analysis: tflint with the AWS ruleset, trivy security scanning, optional pre-commit hooks, a checksum-verifying installer for pinned tools (`make tools`), `make lint`, `scan` and `check`, and CI jobs for both.
+
+### Fixed
+
+- An unused data source in the state bucket module, found by the linter.
 
 ## [0.1.0] - 2026-11-11
 
