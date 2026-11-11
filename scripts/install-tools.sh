@@ -12,6 +12,7 @@ set -euo pipefail
 TFLINT_VERSION=0.66.0
 TRIVY_VERSION=0.76.2
 CONFTEST_VERSION=0.71.1
+TERRAFORM_DOCS_VERSION=0.24.0
 
 BIN_DIR="${BIN_DIR:-$HOME/.local/bin}"
 mkdir -p "$BIN_DIR"
@@ -79,14 +80,27 @@ install_conftest() {
   echo "conftest $CONFTEST_VERSION installed"
 }
 
+install_terraform_docs() {
+  if installed terraform-docs "$TERRAFORM_DOCS_VERSION"; then
+    echo "terraform-docs $TERRAFORM_DOCS_VERSION already installed"
+    return
+  fi
+  local file="terraform-docs-v${TERRAFORM_DOCS_VERSION}-${os}-${arch}.tar.gz"
+  fetch "https://github.com/terraform-docs/terraform-docs/releases/download/v${TERRAFORM_DOCS_VERSION}" \
+    "$file" "terraform-docs-v${TERRAFORM_DOCS_VERSION}.sha256sum"
+  tar --extract --gzip --file "$work/$file" --directory "$BIN_DIR" terraform-docs
+  echo "terraform-docs $TERRAFORM_DOCS_VERSION installed"
+}
+
 tools=("$@")
-[ ${#tools[@]} -gt 0 ] || tools=(tflint trivy conftest)
+[ ${#tools[@]} -gt 0 ] || tools=(tflint trivy conftest terraform-docs)
 
 for tool in "${tools[@]}"; do
   case "$tool" in
     tflint) install_tflint ;;
     trivy) install_trivy ;;
     conftest) install_conftest ;;
+    terraform-docs) install_terraform_docs ;;
     *) echo "Unknown tool: $tool" >&2; exit 1 ;;
   esac
 done
