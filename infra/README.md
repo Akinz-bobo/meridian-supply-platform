@@ -99,4 +99,15 @@ The account ids are placeholders. Against the emulator they give each environmen
 
 ## Adding a module
 
-Module standards (inputs, outputs, tests, generated documentation) are being defined in [#15](https://github.com/Akinz-bobo/meridian-supply-platform/issues/15). Until then, follow `modules/context`.
+```bash
+make module NAME=sqs-consumer-queue
+```
+
+This creates a skeleton that meets the [module standards](../docs/architecture/module-standards.md): versions, a `name` and `tags` input, a test file, an example and a README. Add the resources, write the tests, describe the module in its README, then run `make docs` and `make check`.
+
+## Modules
+
+| Module                                         | Creates                                                    |
+| ---------------------------------------------- | ---------------------------------------------------------- |
+| [context](modules/context/README.md)           | Nothing. Builds the names and tags every other module uses |
+| [state-bucket](modules/state-bucket/README.md) | The encrypted, versioned bucket that holds Terraform state |
