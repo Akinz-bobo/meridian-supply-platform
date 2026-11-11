@@ -5,15 +5,25 @@
 # Usage: plan-report.sh <report-file> <environment> [environment ...]
 # Exits non-zero if any plan fails or violates a policy. The report is
 # written either way, so a failing pull request still shows why.
+#
+# Run it through `make report`, which sets the target (emulator or AWS).
 set -uo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 report="$1"
 shift
 
+# Without a target the provider would fall back to real AWS with whatever
+# credentials happen to be in the environment. Refuse instead of guessing.
+if [ -z "${TF_VAR_aws_endpoint_url:-}" ] && [ "${TARGET:-}" != aws ]; then
+  echo "No target is set. Run this through 'make report', or set TARGET=aws to plan against real AWS." >&2
+  exit 2
+fi
+
 # Plan files can contain secrets, so they live in a private temporary
 # directory that is removed on exit.
 work="$(mktemp -d)"
+# shellcheck disable=SC2329 # invoked by the EXIT trap below
 cleanup() {
   if [ -n "$work" ] && [ -d "$work" ]; then
     rm -rf -- "$work"
@@ -30,12 +40,12 @@ for env in "$@"; do
     dir="$root/infra/environments/$env/$layer"
     plan="$work/$env-$layer"
 
-    if ! make --no-print-directory -C "$root" init ENV="$env" LAYER="$layer" >"$plan.log" 2>&1 ||
+    if ! TF_CLI_ARGS_init=-no-color make --no-print-directory -C "$root" init ENV="$env" LAYER="$layer" >"$plan.log" 2>&1 ||
       ! terraform -chdir="$dir" plan -input=false -lock=false -no-color \
         -var-file=../env.tfvars -out="$plan.bin" >>"$plan.log" 2>&1; then
       failed=1
       rows+="| \`$env\` | \`$layer\` | | | | | :x: plan failed |"$'\n'
-      details+=$'\n'"<details><summary><code>$env/$layer</code>: plan failed</summary>"$'\n\n```\n'"$(tail -n 40 "$plan.log")"$'\n```\n\n</details>\n'
+      details+=$'\n'"<details><summary><code>$env/$layer</code>: plan failed</summary>"$'\n\n```\n'"$(grep -A 40 -m 1 -E '^(Error|Planning failed)' "$plan.log" | head -n 40)"$'\n```\n\n</details>\n'
       continue
     fi
     terraform -chdir="$dir" show -json "$plan.bin" >"$plan.json"
