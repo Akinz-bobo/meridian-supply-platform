@@ -1,0 +1,26 @@
+name: Task
+description: A unit of planned work
+labels: []
+body:
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Why this is needed and where it fits.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What is included, and what is explicitly not.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: A checklist. The task is done when every box can be ticked.
+      value: '- [ ] '
+    validations:
+      required: true
