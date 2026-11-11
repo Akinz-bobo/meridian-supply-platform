@@ -11,6 +11,8 @@ What Meridian is made of and how the parts work together. Read the [domain model
 - [Network](#network)
 - [Security](#security)
 - [Observability](#observability)
+- [AWS service catalogue](#aws-service-catalogue)
+- [What this document does not cover](#what-this-document-does-not-cover)
 
 ## System context
 
@@ -335,3 +337,53 @@ Nothing that holds data has a route to the internet, and nothing that runs code 
 | Alarms  | CloudWatch alarms to SNS                                                                                         | Telling a person, with a link to the runbook |
 
 Every alarm has a runbook. An alarm nobody knows how to act on is noise.
+
+## AWS service catalogue
+
+Every AWS service in the design, the job it does, and the milestone that introduces it. A service is on this list only because something needs it.
+
+| Service                    | Job in Meridian                                                                | Milestone  |
+| -------------------------- | ------------------------------------------------------------------------------ | ---------- |
+| **VPC**                    | Network isolation in three tiers across three zones                            | M2         |
+| **IAM**                    | Least-privilege roles for workloads, pipelines and people                      | M2         |
+| **KMS**                    | Encryption keys per data domain                                                | M2         |
+| **Secrets Manager**        | Database credentials and third-party secrets                                   | M2         |
+| **Systems Manager**        | Configuration in Parameter Store. Shell access to the EC2 gateway without SSH  | M2, M5     |
+| **S3**                     | Terraform state, supplier uploads, file exchange, data lake, static site, logs | M1 onwards |
+| **DynamoDB**               | Terraform state locks. Inventory movement ledger and stock levels              | M1, M3     |
+| **RDS**                    | PostgreSQL for catalog, procurement and budget                                 | M3         |
+| **ElastiCache**            | Read cache for stock lookups                                                   | M3         |
+| **SQS**                    | One queue per event consumer, each with a dead-letter queue                    | M4         |
+| **SNS**                    | Fan-out of alarms and notifications                                            | M4         |
+| **Kinesis Data Streams**   | Ordered stream of warehouse movements                                          | M4         |
+| **EventBridge**            | The event bus between services. Schedules for planning jobs                    | M4         |
+| **ECR**                    | Container images, scanned on push                                              | M5         |
+| **ECS on Fargate**         | Catalog service and scheduled planning tasks                                   | M5         |
+| **EKS**                    | Inventory, procurement and budget services                                     | M5         |
+| **EC2 and Auto Scaling**   | The ERP gateway host, replaced automatically if it fails                       | M5         |
+| **Elastic Load Balancing** | Internal application load balancer in front of the services                    | M5         |
+| **Lambda**                 | Scan intake, file validation, reporting API, small glue functions              | M6 onwards |
+| **API Gateway**            | The single public API entry point                                              | M6         |
+| **Cognito**                | Sign-in and roles for people                                                   | M6         |
+| **Step Functions**         | Curation workflow and planning orchestration                                   | M6, M9     |
+| **SES**                    | Email for approvals and reports                                                | M6         |
+| **Data Firehose**          | Delivery of events into the data lake                                          | M10        |
+| **Glue**                   | Schema catalog for the data lake                                               | M10        |
+| **Athena**                 | SQL over the data lake for reports and forecasts                               | M10        |
+| **CloudFront**             | Delivery of the web dashboard and the API over one domain                      | M10        |
+| **WAF**                    | Request filtering at the edge                                                  | M10        |
+| **Route 53**               | DNS                                                                            | M10        |
+| **ACM**                    | TLS certificates                                                               | M10        |
+| **CloudWatch**             | Logs, metrics, alarms and dashboards                                           | M1 onwards |
+| **X-Ray**                  | Distributed tracing                                                            | M11        |
+| **Managed Prometheus**     | Cluster and application metrics                                                | M11        |
+| **CloudTrail**             | Audit log of API activity                                                      | M11        |
+| **AWS Config**             | Detection of configuration drift from policy                                   | M11        |
+| **AWS Backup**             | Scheduled, tested backups of databases                                         | M11        |
+| **AWS Budgets**            | Spend alerts per environment                                                   | M11        |
+
+## What this document does not cover
+
+- **Per-service design.** API contracts, schemas and internal structure land with each service milestone.
+- **Sizing.** Instance classes and capacity are set per environment in milestone 2 onwards.
+- **Measured performance or cost.** The platform is developed against an emulator ([decision record 0002](../adr/0002-develop-against-an-aws-emulator.md)), so any figure will be an estimate and labelled as one.
