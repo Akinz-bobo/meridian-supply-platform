@@ -13,6 +13,7 @@ Notable changes, newest first. The format follows [Keep a Changelog](https://kee
 - Decision record 0008: layered state per environment.
 - Remote state: a tested `state-bucket` module, a bootstrap stack, a shared backend configuration with S3-native locking, `make bootstrap`, decision record 0009 and a state runbook.
 - Static analysis: tflint with the AWS ruleset, trivy security scanning, optional pre-commit hooks, a checksum-verifying installer for pinned tools (`make tools`), `make lint`, `scan` and `check`, and CI jobs for both.
+- Policy as code: 13 rules in Rego for tags, naming, approved regions, IAM and protected resources, with 39 tests, `make policy` and `make policy-test`, and a guide documenting each rule.
 
 ### Fixed
 

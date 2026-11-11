@@ -23,14 +23,14 @@ flowchart LR
     plan --> apply[apply to<br/>the emulator]
 ```
 
-| Check         | Tool                                                                             | Catches                                                                     | Example                                                              |
-| ------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| Format        | `terraform fmt`                                                                  | Inconsistent layout                                                         | Misaligned arguments                                                 |
-| Validate      | `terraform validate`                                                             | Invalid syntax, wrong types, references to things that do not exist         | A typo in a resource name                                            |
-| Lint          | [tflint](https://github.com/terraform-linters/tflint) with the AWS ruleset       | Values AWS will reject, unused declarations, undocumented variables, naming | An instance type that does not exist. A variable with no description |
-| Security scan | [trivy](https://github.com/aquasecurity/trivy)                                   | Insecure configuration                                                      | A bucket without encryption. A security group open to the world      |
-| Module tests  | `terraform test`                                                                 | A module that does not behave as it promises                                | The state bucket losing its versioning                               |
-| Policy        | Added in [#13](https://github.com/Akinz-bobo/meridian-supply-platform/issues/13) | Rules specific to this organisation                                         | A resource without the required tags                                 |
+| Check         | Tool                                                                       | Catches                                                                      | Example                                                              |
+| ------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Format        | `terraform fmt`                                                            | Inconsistent layout                                                          | Misaligned arguments                                                 |
+| Validate      | `terraform validate`                                                       | Invalid syntax, wrong types, references to things that do not exist          | A typo in a resource name                                            |
+| Lint          | [tflint](https://github.com/terraform-linters/tflint) with the AWS ruleset | Values AWS will reject, unused declarations, undocumented variables, naming  | An instance type that does not exist. A variable with no description |
+| Security scan | [trivy](https://github.com/aquasecurity/trivy)                             | Insecure configuration                                                       | A bucket without encryption. A security group open to the world      |
+| Module tests  | `terraform test`                                                           | A module that does not behave as it promises                                 | The state bucket losing its versioning                               |
+| Policy        | [conftest](https://www.conftest.dev)                                       | Rules specific to this organisation. See [policy as code](policy-as-code.md) | A resource without the required tags                                 |
 
 The linter and the scanner overlap a little and are both kept: the linter knows Terraform and the AWS API well, the scanner knows security practice well.
 
@@ -55,6 +55,7 @@ make lint       # tflint
 make scan       # trivy, failing on medium severity and above
 make scan-all   # trivy, reporting everything including low, without failing
 make test       # module tests
+make policy-test  # tests of the policies
 ```
 
 To run them automatically on commit, install the optional hooks:
@@ -108,11 +109,11 @@ There are no suppressions in the repository at the time of writing.
 
 ## Tool versions
 
-| Tool               | Pinned in                                                    | Installed by                                   |
-| ------------------ | ------------------------------------------------------------ | ---------------------------------------------- |
-| Terraform          | [`.terraform-version`](../../.terraform-version)             | You, or a version manager that reads that file |
-| tflint, trivy      | [`scripts/install-tools.sh`](../../scripts/install-tools.sh) | `make tools`                                   |
-| tflint AWS ruleset | [`.tflint.hcl`](../../.tflint.hcl)                           | `tflint --init`, run by `make lint`            |
+| Tool                    | Pinned in                                                    | Installed by                                   |
+| ----------------------- | ------------------------------------------------------------ | ---------------------------------------------- |
+| Terraform               | [`.terraform-version`](../../.terraform-version)             | You, or a version manager that reads that file |
+| tflint, trivy, conftest | [`scripts/install-tools.sh`](../../scripts/install-tools.sh) | `make tools`                                   |
+| tflint AWS ruleset      | [`.tflint.hcl`](../../.tflint.hcl)                           | `tflint --init`, run by `make lint`            |
 
 `make tools` downloads each release, verifies it against the checksum file published with it, and installs it into `~/.local/bin`. CI uses the same script, so a check cannot pass locally and fail in CI because of a version difference.
 
