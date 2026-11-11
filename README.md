@@ -48,7 +48,8 @@ You need Docker, Terraform and the AWS CLI. No AWS account.
 ```bash
 make doctor   # check your tools
 make up       # start the emulator
-make status
+make apply    # provision the dev environment's foundation layer
+make destroy
 make down     # stop and remove everything
 ```
 
@@ -68,6 +69,7 @@ See [local development](docs/guides/local-development.md).
 | [Roadmap](docs/planning/roadmap.md)                                   | Milestones, their order, dependencies and status                              |
 | [Local development](docs/guides/local-development.md)                 | Run the emulator on your machine: setup, commands, troubleshooting            |
 | [Emulator differences](docs/architecture/emulator-differences.md)     | Where the emulator differs from AWS, and how each difference is handled       |
+| [Infrastructure guide](infra/README.md)                               | Terraform layout, commands, safety and how to add a layer                     |
 
 Changes are summarised in the [changelog](CHANGELOG.md).
 
