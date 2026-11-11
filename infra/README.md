@@ -6,8 +6,10 @@ Everything the platform runs on, as Terraform. The reasoning behind the layout i
 
 ```
 infra/
+  bootstrap/         creates the remote state bucket. Applied once, by hand
   modules/           reusable building blocks
     context/         naming and tagging, used by every other module
+    state-bucket/    the encrypted, versioned bucket that holds state
   environments/
     _shared/         provider, version and variable files, defined once
     dev/
@@ -29,6 +31,7 @@ All commands take `ENV` (`dev`, `staging`, `production`) and `LAYER`. The defaul
 
 ```bash
 make up                          # the emulator must be running
+make bootstrap                   # once per emulator start: creates the state bucket
 make plan                        # dev, foundation
 make apply ENV=staging
 make destroy ENV=staging
@@ -54,6 +57,10 @@ The provider has one input that decides the target, `aws_endpoint_url`:
 | Modules            | Identical                                         | Identical                     |
 
 No module contains a condition on the target. If the emulator behaves differently from AWS, the difference is recorded in [emulator differences](../docs/architecture/emulator-differences.md).
+
+## State
+
+Every layer keeps its state in one S3 bucket in the shared-services account, under `<environment>/<layer>/terraform.tfstate`, encrypted with a dedicated KMS key, versioned, and locked with a lock object beside it. `make init` configures this. The design is in [decision record 0009](../docs/adr/0009-remote-state-in-s3-with-native-locking.md), and what to do when state is locked or wrong is in the [state runbook](../docs/runbooks/terraform-state.md).
 
 ## Safety
 
@@ -81,6 +88,8 @@ The account ids are placeholders. Against the emulator they give each environmen
    ln -s ../../_shared/versions.tf versions.tf
    ln -s ../../_shared/variables.tf variables.tf
    ```
+
+   Link `backend.tf` the same way.
 
 3. Write `main.tf` and `outputs.tf`. Call modules, pass values, publish what other layers need to Parameter Store.
 4. Copy `.terraform.lock.hcl` from an existing layer, or run `terraform providers lock` for the three platforms.
