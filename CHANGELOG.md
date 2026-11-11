@@ -11,6 +11,7 @@ Notable changes, newest first. The format follows [Keep a Changelog](https://kee
 - Terraform layout: a `context` module for naming and tagging with tests, a shared provider configuration with one switch between the emulator and AWS, and the `foundation` state layer for dev, staging and production.
 - `make plan`, `apply`, `destroy`, `validate` and `test`, and CI for formatting, validation and module tests.
 - Decision record 0008: layered state per environment.
+- Remote state: a tested `state-bucket` module, a bootstrap stack, a shared backend configuration with S3-native locking, `make bootstrap`, decision record 0009 and a state runbook.
 
 ## [0.1.0] - 2026-11-11
 

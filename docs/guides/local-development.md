@@ -31,6 +31,7 @@ It lists each required tool with its version, fails if one is missing or too old
 
 ```bash
 make up        # start the emulator and wait until it is healthy
+make bootstrap # create the remote state bucket in the emulator
 make status    # is it running, and how many services answer
 make logs      # follow its logs
 make down      # stop it and remove everything it created
