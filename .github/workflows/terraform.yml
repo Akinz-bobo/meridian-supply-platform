@@ -4,22 +4,24 @@ on:
   push:
     branches: [main]
     paths:
-      [
-        'infra/**',
-        'scripts/terraform-*.sh',
-        'Makefile',
-        '.terraform-version',
-        '.github/workflows/terraform.yml',
-      ]
+      - 'infra/**'
+      - 'scripts/**'
+      - 'Makefile'
+      - '.terraform-version'
+      - '.tflint.hcl'
+      - 'trivy.yaml'
+      - '.trivyignore.yaml'
+      - '.github/workflows/terraform.yml'
   pull_request:
     paths:
-      [
-        'infra/**',
-        'scripts/terraform-*.sh',
-        'Makefile',
-        '.terraform-version',
-        '.github/workflows/terraform.yml',
-      ]
+      - 'infra/**'
+      - 'scripts/**'
+      - 'Makefile'
+      - '.terraform-version'
+      - '.tflint.hcl'
+      - 'trivy.yaml'
+      - '.trivyignore.yaml'
+      - '.github/workflows/terraform.yml'
 
 concurrency:
   group: terraform-${{ github.ref }}
@@ -54,3 +56,41 @@ jobs:
         run: make validate
       - name: Module tests
         run: make test
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the pinned tools
+        run: |
+          BIN_DIR="$HOME/.local/bin" ./scripts/install-tools.sh tflint
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Cache tflint plugins
+        uses: actions/cache@v4
+        with:
+          path: ~/.tflint.d/plugins
+          key: tflint-${{ hashFiles('.tflint.hcl') }}
+      - name: tflint
+        run: make lint
+        env:
+          # Raises the rate limit when tflint downloads its ruleset.
+          GITHUB_TOKEN: ${{ github.token }}
+
+  security:
+    name: Security scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the pinned tools
+        run: |
+          BIN_DIR="$HOME/.local/bin" ./scripts/install-tools.sh trivy
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Cache the scanner's checks
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/trivy
+          key: trivy-checks-${{ github.run_id }}
+          restore-keys: trivy-checks-
+      - name: trivy
+        run: make scan
