@@ -1,0 +1,50 @@
+name: Tooling
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: tooling-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  scripts:
+    name: Shell scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint with shellcheck
+        run: shellcheck scripts/*.sh
+
+  emulator:
+    name: Emulator boots
+    runs-on: ubuntu-latest
+    env:
+      AWS_ENDPOINT_URL: http://localhost:4566
+      AWS_DEFAULT_REGION: eu-west-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate the compose file
+        run: docker compose config --quiet
+      - name: Start the emulator
+        run: make up
+      - name: Report status
+        run: make status
+      - name: Round trip through S3
+        run: |
+          aws s3 mb s3://ci-smoke
+          echo 'hello' | aws s3 cp - s3://ci-smoke/hello.txt
+          test "$(aws s3 cp s3://ci-smoke/hello.txt -)" = 'hello'
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose logs
+      - name: Stop the emulator
+        if: always()
+        run: make down
