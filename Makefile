@@ -105,8 +105,17 @@ scan: ## Scan the Terraform for security misconfigurations (medium and above)
 scan-all: ## Scan and report every finding, including low severity, without failing
 	trivy config --config trivy.yaml --severity LOW,MEDIUM,HIGH,CRITICAL --exit-code 0 infra
 
+.PHONY: policy-test
+policy-test: ## Run the tests of the policies themselves
+	conftest fmt --check infra/policies
+	conftest verify --policy infra/policies --data infra/policies/data
+
+.PHONY: policy
+policy: init ## Plan ENV and LAYER and check the plan against the policies
+	@./scripts/terraform-policy.sh $(TF_DIR) $(TF_VARS)
+
 .PHONY: check
-check: validate lint scan test ## Everything CI runs for infrastructure
+check: validate lint scan test policy-test ## Every infrastructure check that needs no emulator
 
 .PHONY: test
 test: ## Run the tests of every module that has them
