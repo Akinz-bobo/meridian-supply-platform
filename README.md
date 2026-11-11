@@ -41,6 +41,19 @@ The platform targets AWS. Day to day, and in CI, it is provisioned against [Floc
 
 That choice has limits, and they are stated plainly in [decision record 0002](docs/adr/0002-develop-against-an-aws-emulator.md): an emulator proves that the infrastructure code is valid and that the services work together. It does not prove production performance, real quotas or real cost.
 
+## Try it
+
+You need Docker, Terraform and the AWS CLI. No AWS account.
+
+```bash
+make doctor   # check your tools
+make up       # start the emulator
+make status
+make down     # stop and remove everything
+```
+
+See [local development](docs/guides/local-development.md).
+
 ## Documentation
 
 | Document                                                              | What it covers                                                                |
@@ -53,6 +66,8 @@ That choice has limits, and they are stated plainly in [decision record 0002](do
 | [Event catalogue](docs/architecture/events.md)                        | Every planned event, its producer and its consumers                           |
 | [Environments, naming and tagging](docs/architecture/environments.md) | How environments differ, the naming and tagging standard and the address plan |
 | [Roadmap](docs/planning/roadmap.md)                                   | Milestones, their order, dependencies and status                              |
+| [Local development](docs/guides/local-development.md)                 | Run the emulator on your machine: setup, commands, troubleshooting            |
+| [Emulator differences](docs/architecture/emulator-differences.md)     | Where the emulator differs from AWS, and how each difference is handled       |
 
 Changes are summarised in the [changelog](CHANGELOG.md).
 

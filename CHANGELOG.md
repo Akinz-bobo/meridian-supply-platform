@@ -4,6 +4,11 @@ Notable changes, newest first. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+### Added
+
+- Local emulator stack: a pinned Floci in `compose.yaml`, `make up`, `down`, `status`, `logs` and `doctor`, a local development guide, and a CI job that proves the emulator boots.
+- A record of emulator differences from AWS and how each is handled.
+
 ## [0.1.0] - 2026-11-11
 
 Milestone 0: planning and architecture. No infrastructure exists yet. This release is the written foundation everything else is built against.
