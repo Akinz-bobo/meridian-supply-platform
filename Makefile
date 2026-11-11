@@ -20,7 +20,7 @@ TF_VARS := -var-file=../env.tfvars
 
 # TARGET=emulator (the default) points Terraform at the local emulator.
 # TARGET=aws leaves the provider on real AWS, using your own credentials.
-TARGET ?= emulator
+export TARGET ?= emulator
 SHARED := infra/environments/_shared
 BACKEND := -backend-config=$(CURDIR)/$(SHARED)/backend.hcl \
 	-backend-config=key=$(ENV)/$(LAYER)/terraform.tfstate

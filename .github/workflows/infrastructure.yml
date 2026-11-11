@@ -98,7 +98,7 @@ jobs:
         id: report
         run: |
           status=0
-          ./scripts/plan-report.sh plan-report.md $ENVIRONMENTS || status=$?
+          make report ENVS="$ENVIRONMENTS" || status=$?
           cat plan-report.md >> "$GITHUB_STEP_SUMMARY"
           echo "status=$status" >> "$GITHUB_OUTPUT"
 
