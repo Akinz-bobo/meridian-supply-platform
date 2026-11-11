@@ -89,6 +89,10 @@ validate: ## Check formatting and validate every layer and module
 	terraform fmt -recursive -check infra
 	@./scripts/terraform-validate-all.sh
 
+.PHONY: lint
+lint: ## Lint every layer and module with tflint
+	@./scripts/terraform-lint-all.sh
+
 .PHONY: test
 test: ## Run the tests of every module that has them
 	@./scripts/terraform-test-all.sh
