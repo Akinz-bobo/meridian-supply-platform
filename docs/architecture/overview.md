@@ -157,7 +157,7 @@ flowchart TB
 | **Web dashboard**     | Charts and tables for every role                         | Static site on S3 behind CloudFront                 | None                                   | No servers to run                                                                                       |
 | **ERP gateway**       | Exchange files with the finance system                   | EC2                                                 | S3                                     | The finance system's client software needs a persistent host and a fixed address                        |
 
-The rule behind these choices is recorded in a decision record (tracked in [#6](https://github.com/Akinz-bobo/meridian-supply-platform/issues/6)).
+The rule behind these choices is [decision record 0005](../adr/0005-compute-model-per-workload.md).
 
 ### Data ownership
 
