@@ -7,6 +7,7 @@ What Meridian is made of and how the parts work together. Read the [domain model
 - [System context](#system-context)
 - [Quality goals](#quality-goals)
 - [The parts](#the-parts)
+- [How the parts talk](#how-the-parts-talk)
 
 ## System context
 
@@ -164,3 +165,101 @@ Each service owns its store. No service reads another's database. Data crosses a
 | ElastiCache                              | Inventory                        | Stock lookups are read far more often than they change                                                            |
 | S3                                       | Curation, analytics, ERP gateway | Files, and the data lake                                                                                          |
 | Kinesis                                  | Scan intake                      | Ordered, replayable stream of movements, per warehouse                                                            |
+
+## How the parts talk
+
+Two styles, chosen by one question: does the caller need the answer to continue?
+
+| Style                    | Used when                                                                                                    | Mechanism                                                |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------- |
+| **Request and response** | A person is waiting, or the caller cannot proceed without the result                                         | HTTPS through API Gateway and the internal load balancer |
+| **Events**               | Something happened that others may care about. The producer does not wait and does not know who is listening | EventBridge bus, delivered to one SQS queue per consumer |
+
+Events are the default between services. The conventions (naming, envelope, idempotency, dead-letter handling) are decided in their own record (tracked in [#7](https://github.com/Akinz-bobo/meridian-supply-platform/issues/7)).
+
+### Flow 1: a delivery arrives
+
+Receiving goods touches four services. Only the first step is synchronous.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant O as Warehouse operator
+    participant P as Procurement
+    participant B as EventBridge
+    participant I as Inventory
+    participant U as Budget
+    participant A as Analytics
+
+    O->>P: record goods receipt against a purchase order
+    P->>P: check quantity tolerance and remaining shelf life (PRO-2, PRO-3)
+    P-->>O: accepted
+    P-)B: GoodsReceived
+    B-)I: GoodsReceived
+    I->>I: create batches, write receipt movements, update stock (INV-1, INV-6)
+    I-)B: StockChanged
+    B-)U: GoodsReceived
+    U->>U: turn commitment into actual (BUD-3)
+    U-)B: BudgetUpdated
+    B-)A: every event, through Firehose to the data lake
+```
+
+If inventory is down when the delivery is recorded, the event waits in its queue and is applied when inventory returns. The operator is not blocked.
+
+### Flow 2: a supplier file is curated
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant S as Supplier
+    participant U as S3 uploads
+    participant V as Validation Lambda
+    participant W as Step Functions
+    participant C as Catalog
+    participant D as Data steward
+
+    S->>U: upload file
+    U-)V: object created
+    V->>V: check format and size, split into rows
+    V->>W: start curation
+    W->>C: match each row to the product master
+    alt every row passes and the supplier is trusted
+        W->>C: publish (CAT-1)
+    else rows need review
+        W-)D: review task, by email
+        Note over W,D: the workflow waits, for days if needed, at no compute cost
+        D->>W: approve, fix or reject each row
+        W->>C: publish approved rows (CAT-4)
+    end
+    C-)S: result report: accepted, rejected, and why
+```
+
+### Flow 3: replenishment, from forecast to purchase order
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant T as Scheduler
+    participant W as Step Functions
+    participant F as Forecast task
+    participant R as Proposal task
+    participant Y as Buyer
+    participant P as Procurement
+    participant U as Budget
+
+    T->>W: nightly
+    W->>F: forecast demand from movement history in the data lake
+    W->>R: compute reorder points and proposals (PLN-1, PLN-2, PLN-3)
+    R-)Y: proposals ready
+    Y->>P: accept a proposal, creating a draft purchase order (PLN-4)
+    P->>U: request a commitment
+    alt within budget and under the threshold
+        U-->>P: committed (BUD-2)
+    else over the threshold
+        U-->>P: approval needed (BUD-4)
+        Note over U: a finance controller approves or declines
+    end
+    P->>P: send the order (PRO-1)
+```
+
+The commitment request is one of the few synchronous calls between services, because the buyer needs the answer and a purchase order must not be sent without it.
