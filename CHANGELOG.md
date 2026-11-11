@@ -4,6 +4,10 @@ Notable changes, newest first. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-11
+
+Milestone 1: infrastructure foundation. The first Terraform, and everything needed to change infrastructure safely: a local emulator, a layout for modules and environments, remote state, static analysis, policy as code and a pipeline.
+
 ### Added
 
 - Local emulator stack: a pinned Floci in `compose.yaml`, `make up`, `down`, `status`, `logs` and `doctor`, a local development guide, and a CI job that proves the emulator boots.
@@ -36,5 +40,6 @@ Milestone 0: planning and architecture. No infrastructure exists yet. This relea
 - Roadmap with milestone order, dependencies and exit criteria.
 - CI for documentation: formatting, relative links and the decision record index.
 
-[Unreleased]: https://github.com/Akinz-bobo/meridian-supply-platform/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Akinz-bobo/meridian-supply-platform/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Akinz-bobo/meridian-supply-platform/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Akinz-bobo/meridian-supply-platform/releases/tag/v0.1.0
