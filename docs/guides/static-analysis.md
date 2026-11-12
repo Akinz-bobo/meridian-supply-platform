@@ -59,6 +59,14 @@ make policy-test  # tests of the policies
 make docs-check   # module READMEs are up to date
 ```
 
+### The scanner and shared variables
+
+Every environment layer links to one shared `variables.tf`. The scanner does not follow symbolic links, so in place it sees a layer with no variable declarations and treats every `var.` value as unknown. A setting that depends on a variable is then either reported as missing or not checked at all.
+
+This was found when the scanner reported that the production database had no deletion protection, although `deletion_protection = !var.disposable` and `disposable` is false there. Replacing the link with a copy of the file made the finding go away, which showed the link was the cause. It also meant that until then the layers had been scanned with their variables unknown.
+
+`make scan` therefore runs [`scripts/terraform-scan.sh`](../../scripts/terraform-scan.sh), which scans a temporary copy of `infra` in which each link is replaced by the file it points to. Layers are evaluated with production's values, so the scan answers the question "is this safe as production would run it". A deliberately inverted setting is now caught.
+
 To run them automatically on commit, install the optional hooks:
 
 ```bash
