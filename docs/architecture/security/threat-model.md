@@ -1,6 +1,6 @@
-# Threat model: network and identity
+# Threat model: network, identity and data
 
-What could go wrong in the network and identity layers of an environment, what stops it, and what is left. It covers milestone 2 and is extended as data stores, messaging, compute and services are added.
+What could go wrong in the network, identity and data layers of an environment, what stops it, and what is left. It covers milestones 2 and 3 and is extended as messaging, compute and services are added.
 
 - [Scope](#scope)
 - [What is being protected](#what-is-being-protected)
@@ -15,11 +15,12 @@ What could go wrong in the network and identity layers of an environment, what s
 
 | In scope                                                                | Out of scope until the milestone that builds it                              |
 | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| The VPC, subnets, routing, endpoints, flow logs and security groups     | Data stores and their contents (milestone 3)                                 |
-| Encryption keys and their policies                                      | Queues, topics and streams (milestone 4)                                     |
-| IAM: the boundary, workload roles, the deploy, operator and audit roles | Clusters, load balancers and instances (milestone 5)                         |
-| Secrets and configuration                                               | Application code and its inputs (milestones 6 to 10)                         |
-| The pipeline's access to an environment, and Terraform state            | Detection and response: audit trail, threat detection, alarms (milestone 11) |
+| The VPC, subnets, routing, endpoints, flow logs and security groups     | Queues, topics and streams (milestone 4)                                     |
+| Encryption keys and their policies                                      | Clusters, load balancers and instances (milestone 5)                         |
+| IAM: the boundary, workload roles, the deploy, operator and audit roles | Application code and its inputs (milestones 6 to 10)                         |
+| Secrets and configuration                                               | Detection and response: audit trail, threat detection, alarms (milestone 11) |
+| The pipeline's access to an environment, and Terraform state            |                                                                              |
+| Data stores: buckets, tables, the database, the cache, and backups      |                                                                              |
 
 The method is a walk through each trust boundary asking the STRIDE questions: can someone pretend to be something they are not, tamper, deny an action, read what they should not, stop the service, or gain privileges.
 
@@ -28,6 +29,7 @@ The method is a walk through each trust boundary asking the STRIDE questions: ca
 | Asset                                                          | Why it matters                                                                                                |
 | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | Business data: product master, stock, purchase orders, budgets | Wrong stock or budget figures cause real orders and real payments. Supplier prices are commercially sensitive |
+| Backups                                                        | The last resort. Worth more to an attacker to destroy than the original                                       |
 | Secrets: database credentials, partner tokens, signing keys    | Each one opens a further system                                                                               |
 | Encryption keys                                                | Whoever can use a key can read everything it protects. Whoever can delete it can destroy that data            |
 | The ability to change infrastructure                           | The deploy role can create, change and delete almost everything                                               |
@@ -131,6 +133,27 @@ Status: **Mitigated** means a control exists and is checked automatically. **Par
 | K7  | A new volume or bucket is created unencrypted or public, outside Terraform       |          | Account-wide EBS encryption by default and S3 public access block                                                                                                                                                                                                                          | Mitigated                                                                     |
 | K8  | Flow logs are written unencrypted because a caller forgot the key                |          | The flow logs module requires a customer managed key and refuses a plan without one. `POL-LOG-3` checks every log group                                                                                                                                                                    | Mitigated. Was finding F1                                                     |
 
+### Data
+
+Added with milestone 3. The stores are described in the [data architecture](../data.md) and reviewed in the [data layer review](data-review.md).
+
+| #   | Threat                                                                                                   | Controls                                                                                                                                                                                                                                                     | Status                                                                                                                                                          |
+| --- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S1  | A store is reachable from the internet                                                                   | Databases and caches are in the data subnets with the data security group, and the database is never publicly accessible. Buckets block public access, at bucket and account level. Policies `POL-DB-1` and `POL-SG-1`. Smoke test reads each back           | Mitigated                                                                                                                                                       |
+| S2  | Data is read from storage, a snapshot or a backup by someone without access to the service               | Every store, its snapshots and its backups are encrypted with a customer managed key. The vault has a key of its own                                                                                                                                         | Mitigated                                                                                                                                                       |
+| S3  | Data is read in transit                                                                                  | Bucket policy denies requests without TLS. The database parameter group requires TLS. The cache encrypts connections                                                                                                                                         | Mitigated in configuration. The emulator's database and cache run without TLS, so refusal of a plain connection is not proven                                   |
+| S4  | A database or cache password leaks from the repository, state, a plan or an image                        | There is none to leak. RDS creates and rotates the master password. The cache has no password: users authenticate with IAM. `POL-DB-3`, `POL-CACHE-3`, `POL-CACHE-4`, and the state audit after every apply                                                  | Mitigated                                                                                                                                                       |
+| S5  | One service reads or changes another service's data                                                      | Each store has one owner. The access policies a module outputs name one store, and tie use of the shared data key to that store through the encryption context. The cache user is limited to a key prefix                                                    | Partly. Services have no database role of their own yet, [#91](https://github.com/Akinz-bobo/meridian-supply-platform/issues/91)                                |
+| S6  | A service rewrites the record it is supposed only to add to                                              | The movement ledger is written with an append-only policy: put and read, no update or delete. Workloads cannot delete object versions                                                                                                                        | Mitigated. Was review finding D2                                                                                                                                |
+| S7  | A store is deleted by a mistaken change                                                                  | Deletion protection on tables and the database, a final snapshot, buckets that refuse to be emptied, all following `disposable`, which only dev sets. `POL-PROTECT-1`, `POL-DB-5`. Destroying a protected environment takes the deliberate two-step teardown | Mitigated                                                                                                                                                       |
+| S8  | Bad data is written, or good data deleted, by a fault or an attacker                                     | Point-in-time recovery on tables and the database, versioning on buckets                                                                                                                                                                                     | Partly. No restore has been proven with real data, [#93](https://github.com/Akinz-bobo/meridian-supply-platform/issues/93)                                      |
+| S9  | An attacker who can destroy a store also destroys its backups                                            | The vault's policy denies deleting a recovery point to every principal. The vault is locked outside dev. The role that takes backups cannot delete or restore. The vault uses a different key from the stores                                                | Mitigated in configuration                                                                                                                                      |
+| S10 | A malicious or malformed file is uploaded by a supplier                                                  | The bucket is private, encrypted and versioned. Nothing inspects the file                                                                                                                                                                                    | Open until the curation workflow, [#90](https://github.com/Akinz-bobo/meridian-supply-platform/issues/90)                                                       |
+| S11 | Stock is corrupted by duplicates or races: a movement recorded twice, or two picks taking the same units | One transaction per movement with a uniqueness marker and a condition on the quantity. Exercised by `make data-check`, including ten concurrent picks                                                                                                        | Mitigated in design. Tested against the emulator, which is not a load test                                                                                      |
+| S12 | A compromised cache client reads other keys, empties the cache or reconfigures it                        | The user's access rule allows one key prefix and no dangerous, admin or scripting commands. The module refuses a wider rule. The rule is exercised against a real Valkey server                                                                              | Mitigated for the rule. That ElastiCache applies it is not proven                                                                                               |
+| S13 | A store fills up, or its cost runs away, unnoticed                                                       | Database storage grows to a ceiling. The cache evicts. Nothing alerts                                                                                                                                                                                        | Partly. [#92](https://github.com/Akinz-bobo/meridian-supply-platform/issues/92)                                                                                 |
+| S14 | Business data appears in logs                                                                            | Only statements slower than a threshold are logged, and the module refuses a threshold that would log most of them. Log groups are encrypted and kept for a bounded time                                                                                     | Partly. Slow statements can still contain data, and operators can read logs. Tracked in [#62](https://github.com/Akinz-bobo/meridian-supply-platform/issues/62) |
+
 ## Residual risks
 
 What remains after the controls above, in order of concern.
@@ -141,6 +164,8 @@ What remains after the controls above, in order of concern.
 4. **Services in one environment are separated by policy, not by structure** (I4, K2, N5). They share an account, a data key and a security group. A fault in one service's role policy can expose another service's data in the same environment.
 5. **The deploy role is powerful by design** (I3, I9). It cannot escalate its own privileges or weaken the boundary, and it can still delete most resources in its region. The defences are the pull request review, the policy checks, and protection on the GitHub environment.
 6. **People's access depends on the identity account**, which is outside this repository.
+7. **Recovery is designed and not demonstrated** (S8). Backups are taken and restores have only been tried against an emulator that does not copy data.
+8. **Uploads are not inspected** (S10) until the service that reads them exists.
 
 ## Assumptions
 
@@ -156,4 +181,5 @@ What remains after the controls above, in order of concern.
 
 - Each milestone that adds a layer adds its threats here, in the same pull request series as the review that closes the milestone.
 - A finding is either fixed, with the pull request named in the [review](baseline-review.md), or tracked in an issue.
+- Milestone 3 added the data section, with the [data layer review](data-review.md).
 - The whole model is revisited in milestone 11, when detection and response exist.
