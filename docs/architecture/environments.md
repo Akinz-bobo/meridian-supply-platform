@@ -85,16 +85,16 @@ Rules:
 
 Every resource that supports tags carries these, applied through provider default tags so that none can be forgotten.
 
-| Tag                  | Example                               | Purpose                                                   |
-| -------------------- | ------------------------------------- | --------------------------------------------------------- |
-| `Project`            | `meridian`                            | Separates this platform from anything else in the account |
-| `Environment`        | `prod`                                | Filtering, and conditions in IAM policies                 |
-| `Component`          | `inventory`                           | Which service or building block owns the resource         |
-| `Owner`              | `platform`                            | The team to ask                                           |
-| `CostCentre`         | `supply-chain`                        | Cost allocation                                           |
-| `ManagedBy`          | `terraform`                           | Marks anything that must not be changed by hand           |
-| `Repository`         | `Akinz-bobo/meridian-supply-platform` | Where the definition lives                                |
-| `DataClassification` | `internal`, `confidential`            | On data stores only. Drives encryption and access rules   |
+| Tag                  | Example                                            | Purpose                                                                                                                             |
+| -------------------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `Project`            | `meridian`                                         | Separates this platform from anything else in the account                                                                           |
+| `Environment`        | `prod`                                             | Filtering, and conditions in IAM policies                                                                                           |
+| `Component`          | `inventory`                                        | Which service or building block owns the resource                                                                                   |
+| `Owner`              | `platform`                                         | The team to ask                                                                                                                     |
+| `CostCentre`         | `supply-chain`                                     | Cost allocation                                                                                                                     |
+| `ManagedBy`          | `terraform`                                        | Marks anything that must not be changed by hand                                                                                     |
+| `Repository`         | `Akinz-bobo/meridian-supply-platform`              | Where the definition lives                                                                                                          |
+| `DataClassification` | `public`, `internal`, `confidential`, `restricted` | On data stores only. Drives access, retention and backup. The levels are defined in the [data architecture](data.md#classification) |
 
 A policy check fails any plan that creates a taggable resource without `Project`, `Environment`, `Component` and `ManagedBy`.
 
