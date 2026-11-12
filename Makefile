@@ -135,11 +135,11 @@ lint: ## Lint every layer and module with tflint
 
 .PHONY: scan
 scan: ## Scan the Terraform for security misconfigurations (medium and above)
-	trivy config --config trivy.yaml infra
+	@./scripts/terraform-scan.sh
 
 .PHONY: scan-all
 scan-all: ## Scan and report every finding, including low severity, without failing
-	trivy config --config trivy.yaml --severity LOW,MEDIUM,HIGH,CRITICAL --exit-code 0 infra
+	@./scripts/terraform-scan.sh --severity LOW,MEDIUM,HIGH,CRITICAL --exit-code 0
 
 .PHONY: policy-test
 policy-test: ## Run the tests of the policies themselves
