@@ -54,6 +54,8 @@ module "access_roles" {
   state_bucket_name = var.state_bucket_name
   state_key_prefix  = var.state_key_prefix
   state_account_id  = var.state_account_id
+
+  allow_key_deletion = var.disposable
 }
 
 module "account_context" {

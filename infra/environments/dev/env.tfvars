@@ -22,3 +22,7 @@ log_retention_days = 30
 
 github_environment = "dev"
 state_key_prefix   = "dev"
+
+# Dev is rebuilt freely. This lets the pipeline delete encryption keys there,
+# which staging and production do not allow.
+disposable = true

@@ -94,3 +94,9 @@ variable "state_key_prefix" {
   description = "Prefix of this environment's state in the bucket: the name of the environment's directory."
   type        = string
 }
+
+variable "disposable" {
+  description = "The environment holds no data worth keeping and may be torn down by the pipeline. Relaxes protections that exist to prevent data loss."
+  type        = bool
+  default     = false
+}
