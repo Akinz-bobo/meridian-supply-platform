@@ -146,6 +146,22 @@ data "aws_iam_policy_document" "deploy" {
     ]
   }
 
+  # Deleting or disabling a key makes everything it encrypted unreadable.
+  # A plan that deletes a key is stopped by a policy check, and that only
+  # protects against plans. This protects against a direct API call made
+  # with the pipeline's credentials. An environment whose data is
+  # disposable may switch it off so that it can be torn down.
+  dynamic "statement" {
+    for_each = var.allow_key_deletion ? [] : [1]
+
+    content {
+      sid       = "KeysAreNotThePipelinesToDestroy"
+      effect    = "Deny"
+      actions   = ["kms:DisableKey", "kms:ScheduleKeyDeletion"]
+      resources = ["*"]
+    }
+  }
+
   # Terraform state for this environment only, in the shared bucket.
   statement {
     sid       = "ListOwnStatePrefix"
