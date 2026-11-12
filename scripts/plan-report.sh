@@ -23,7 +23,7 @@ fi
 # Plan files can contain secrets, so they live in a private temporary
 # directory that is removed on exit.
 work="$(mktemp -d)"
-# shellcheck disable=SC2329 # invoked by the EXIT trap below
+# shellcheck disable=SC2317,SC2329 # invoked by the EXIT trap below. Older linters call this check SC2317
 cleanup() {
   if [ -n "$work" ] && [ -d "$work" ]; then
     rm -rf -- "$work"
