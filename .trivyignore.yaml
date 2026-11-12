@@ -4,4 +4,14 @@
 # why the finding does not apply or why the risk is accepted. An entry with
 # no reason is not accepted in review.
 
-misconfigurations: []
+misconfigurations:
+  - id: AVD-AWS-0104
+    paths:
+      - "modules/tier-security-groups/main.tf"
+    statement: >-
+      Accepted. Workloads may open HTTPS (TCP 443 only) to any address,
+      because they call AWS APIs and partner APIs whose addresses are not
+      fixed. No other port is open outbound, the data tier has no egress at
+      all, and the destination is reviewed in the network and security
+      baseline review. Filtering by domain name would need an egress proxy
+      or a network firewall, which is recorded there as a possible hardening.
