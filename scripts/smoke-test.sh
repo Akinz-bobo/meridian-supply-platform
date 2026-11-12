@@ -231,6 +231,34 @@ check 'the stock level table has its expiry and batch indexes' jq -e \
   '[.Table.GlobalSecondaryIndexes[]?.IndexName] | sort == ["by-batch", "by-expiry-date"]' \
   <<<"$(as_account "$account" aws dynamodb describe-table --table-name "meridian-$environment-inventory-stock-levels" --output json 2>/dev/null || echo '{}')"
 
+# Data layer: the catalog database.
+database="$(as_account "$account" aws rds describe-db-instances \
+  --db-instance-identifier "meridian-$environment-catalog-db" --output json 2>/dev/null |
+  jq -c '.DBInstances[0] // {}' || echo '{}')"
+check 'the catalog database is available' jq -e '.DBInstanceStatus == "available"' <<<"$database"
+check 'it is not publicly accessible' jq -e '.PubliclyAccessible == false' <<<"$database"
+check 'it is encrypted with the data key' jq -e --arg k "$data_key_arn" \
+  '.StorageEncrypted and .KmsKeyId == $k' <<<"$database"
+check 'its master password is managed by RDS' jq -e '.MasterUserSecret.SecretArn != null' <<<"$database"
+check 'it is in the three data subnets' jq -e '.DBSubnetGroup.Subnets | length == 3' <<<"$database"
+data_group="$(jq -r --arg p "$prefix" '.SecurityGroups[]? | select(.GroupName == $p + "-data") | .GroupId' <<<"$groups")"
+check 'it carries the data security group and no other' jq -e --arg g "$data_group" \
+  '[.VpcSecurityGroups[].VpcSecurityGroupId] == [$g]' <<<"$database"
+check 'it takes automated backups' jq -e '.BackupRetentionPeriod >= 1' <<<"$database"
+check 'it accepts IAM authentication' jq -e '.IAMDatabaseAuthenticationEnabled' <<<"$database"
+check 'it exports its logs' jq -e '.EnabledCloudwatchLogsExports | index("postgresql") != null' <<<"$database"
+if [ "$disposable" != true ]; then
+  check 'it is protected from deletion' jq -e '.DeletionProtection' <<<"$database"
+  check 'it has a standby in a second zone' jq -e '.MultiAZ' <<<"$database"
+  check 'it keeps at least a week of backups' jq -e '.BackupRetentionPeriod >= 7' <<<"$database"
+fi
+check 'its parameter group requires TLS' jq -e \
+  'any(.Parameters[]?; .ParameterName == "rds.force_ssl" and .ParameterValue == "1")' \
+  <<<"$(as_account "$account" aws rds describe-db-parameters --db-parameter-group-name "meridian-$environment-catalog-db" --output json 2>/dev/null || echo '{}')"
+check 'its log group has retention and the logs key' jq -e --arg k "$logs_key_arn" \
+  '.logGroups[0] | .retentionInDays >= 30 and .kmsKeyId == $k' \
+  <<<"$(as_account "$account" aws logs describe-log-groups --log-group-name-prefix "/aws/rds/instance/meridian-$environment-catalog-db/postgresql" --output json 2>/dev/null || echo '{}')"
+
 while IFS= read -r layer; do
   check "state for the $layer layer is in the shared bucket" \
     as_account "$state_account" aws s3api head-object --bucket "$state_bucket" --key "$1/$layer/terraform.tfstate"
