@@ -17,6 +17,7 @@ Notable changes, newest first. The format follows [Keep a Changelog](https://kee
 ### Fixed
 
 - Review fixes for the network: every VPC endpoint has a policy limited to this account, the flow logs module requires a customer managed key, and the data tier is no longer routed to gateway endpoints it could not use.
+- Review fixes for identity: the permission boundary lists S3 actions exactly and denies deleting object versions, and the deploy role is denied disabling or deleting encryption keys outside a disposable environment.
 
 ## [0.2.0] - 2026-11-11
 
