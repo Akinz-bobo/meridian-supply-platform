@@ -90,6 +90,15 @@ Data-holding types: RDS instances and clusters, DynamoDB tables, S3 buckets, KMS
 
 A replacement counts as a delete. Changing an attribute that forces Terraform to recreate a database destroys the data just as surely as removing it.
 
+### Security groups
+
+| Rule     | Rejects                                                                   | Reason                                                                                           |
+| -------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| POL-SG-1 | An ingress rule open to the internet on anything except TCP 80 or TCP 443 | A database, cache or SSH port reachable by the world is the most common serious misconfiguration |
+| POL-SG-2 | A security group rule with no description                                 | A rule that does not say what it is for cannot be reviewed or safely removed                     |
+
+POL-SG-1 reads all three ways Terraform can express a rule: the per-rule resources, the older `aws_security_group_rule`, and rules written inline in `aws_security_group`. A port range that merely includes a web port, such as 0 to 65535, is rejected.
+
 ### Logging
 
 | Rule      | Requires                                 | Reason                                                       |
