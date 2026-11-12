@@ -151,3 +151,19 @@ variable "allow_key_deletion" {
   type        = bool
   default     = false
 }
+
+variable "service_boundary_arns" {
+  description = "Further boundaries the pipeline may create roles with, for AWS service roles whose work falls outside the workload boundary. Each must be an AWS managed policy written for one service, such as the backup service's own policy."
+  type        = set(string)
+  default     = []
+
+  validation {
+    condition     = alltrue([for arn in var.service_boundary_arns : can(regex("^arn:aws[a-z-]*:iam::aws:policy/", arn))])
+    error_message = "A service boundary must be an AWS managed policy, with an ARN starting arn:aws:iam::aws:policy/. A customer managed policy could be changed to allow anything."
+  }
+
+  validation {
+    condition     = alltrue([for arn in var.service_boundary_arns : !endswith(arn, "/AdministratorAccess") && !endswith(arn, "/PowerUserAccess") && !endswith(arn, "FullAccess")])
+    error_message = "AdministratorAccess, PowerUserAccess and the FullAccess policies may not be used as a boundary."
+  }
+}

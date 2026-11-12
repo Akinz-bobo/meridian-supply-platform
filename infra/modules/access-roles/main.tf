@@ -92,7 +92,8 @@ data "aws_iam_policy_document" "deploy" {
   # Privilege escalation, closed three ways.
   #
   # 1. A role can be created or given permissions only if it carries the
-  #    workload boundary, so the pipeline cannot mint an administrator.
+  #    workload boundary, or one of a short list of boundaries approved for
+  #    AWS service roles, so the pipeline cannot mint an administrator.
   statement {
     sid    = "NewRolesMustCarryTheBoundary"
     effect = "Deny"
@@ -109,7 +110,7 @@ data "aws_iam_policy_document" "deploy" {
     condition {
       test     = "StringNotEquals"
       variable = "iam:PermissionsBoundary"
-      values   = [var.permissions_boundary_arn]
+      values   = concat([var.permissions_boundary_arn], sort(tolist(var.service_boundary_arns)))
     }
   }
 

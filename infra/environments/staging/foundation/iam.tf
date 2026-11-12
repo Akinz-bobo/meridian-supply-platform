@@ -56,6 +56,11 @@ module "access_roles" {
   state_account_id  = var.state_account_id
 
   allow_key_deletion = var.disposable
+
+  # The backup service's role does work the workload boundary does not
+  # allow, such as taking snapshots. It carries AWS's own backup policy as
+  # its boundary instead.
+  service_boundary_arns = ["arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup"]
 }
 
 module "account_context" {
