@@ -108,3 +108,21 @@ variable "disposable" {
   type        = bool
   default     = false
 }
+
+variable "database_instance_class" {
+  description = "Size of the PostgreSQL instances."
+  type        = string
+  default     = "db.t4g.medium"
+}
+
+variable "database_multi_az" {
+  description = "Give each database a standby in a second zone."
+  type        = bool
+  default     = true
+}
+
+variable "database_backup_retention_days" {
+  description = "Days of automated database backups."
+  type        = number
+  default     = 14
+}
