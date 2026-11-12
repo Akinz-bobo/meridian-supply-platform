@@ -60,7 +60,7 @@ M3, M4 and M5 are independent of each other and could be worked in parallel by a
 
 ## Milestones
 
-Each milestone has a goal, deliverables and exit criteria. Milestones 0 to 2 are broken into issues. Later ones are a single epic that is broken down when the milestone before it closes, as the [delivery process](delivery-process.md#milestones) describes.
+Each milestone has a goal, deliverables and exit criteria. Milestones 0 to 3 are broken into issues. Later ones are a single epic that is broken down when the milestone before it closes, as the [delivery process](delivery-process.md#milestones) describes.
 
 ### M0: Planning and architecture
 
@@ -101,6 +101,8 @@ Each milestone has a goal, deliverables and exit criteria. Milestones 0 to 2 are
 **Goal.** Reusable modules for every kind of store the services need: RDS PostgreSQL, DynamoDB, S3 and ElastiCache, each encrypted, backed up and monitored by default.
 
 **Exit criteria.** Each module has tests, a generated README and an example. A database can be created, connected to from the private tier, backed up and destroyed.
+
+**Issues.** The data layer and data architecture (72), the S3 bucket module (73), the DynamoDB table module (74), the RDS PostgreSQL module (75), the ElastiCache module (76), backups (77), and a review and release (78).
 
 ### M4: Messaging and events
 
