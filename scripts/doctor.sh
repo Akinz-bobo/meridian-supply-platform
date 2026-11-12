@@ -63,8 +63,8 @@ check required psql 14.0 'The PostgreSQL client, used by make data-check.' psql 
 
 echo
 echo 'Needed by later milestones'
-check optional kubectl 1.29 'Milestone 5: EKS.' kubectl version --client
-check optional helm 3.14 'Milestone 5: EKS workloads.' helm version --short
+check required kubectl 1.33 'Install with: make tools' kubectl version --client
+check required helm 3.14 'Install with: make tools' helm version --short
 check optional ansible 2.15 'Milestone 5: the EC2 gateway.' ansible --version
 
 echo
