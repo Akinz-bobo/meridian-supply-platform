@@ -8,7 +8,7 @@ What a caller needs to know:
 - **Logs are kept for 90 days by default and never fewer than 30.** A shorter period is refused at plan time.
 - **The delivery role is narrow.** It can create streams and put events in this one log group. Its trust policy admits only the flow logs service acting for the given account, which closes the confused deputy path.
 - **The delivery role carries the environment's permission boundary**, passed as `permissions_boundary_arn`.
-- **Encryption with a customer managed key is opt-in through `kms_key_arn`.** The environment passes its logs key once the keys from the encryption standard exist. Without it CloudWatch encrypts with a key it owns.
+- **The log group is always encrypted with a customer managed key**, passed as `kms_key_arn`. There is no default: the module refuses to create an unencrypted log group.
 
 It is a separate module from [`vpc`](../vpc/README.md) so that where logs go and how long they are kept can change without a plan that touches the network.
 
@@ -31,6 +31,7 @@ module "vpc_flow_logs" {
   vpc_id         = "vpc-0123456789abcdef0"
   account_id     = "333333333333"
   log_group_name = "/meridian/prod/network/flow-logs"
+  kms_key_arn    = "arn:aws:kms:eu-west-1:333333333333:key/11111111-2222-3333-4444-555555555555"
 
   permissions_boundary_arn = "arn:aws:iam::333333333333:policy/meridian-prod-workload-boundary"
 }
@@ -48,12 +49,12 @@ module "vpc_flow_logs" {
 | Name | Description | Type | Default | Required |
 | ---- | ----------- | ---- | ------- | :------: |
 | account\_id | Account the VPC is in. The delivery role can be assumed only on behalf of this account. | `string` | n/a | yes |
+| kms\_key\_arn | Customer managed key that encrypts the log group. Pass the logs key. | `string` | n/a | yes |
 | log\_group\_name | Name of the log group, a path under /<project>/<environment>/. | `string` | n/a | yes |
 | name | Prefix for the role and the flow log. Take it from the context module's prefix. | `string` | n/a | yes |
 | permissions\_boundary\_arn | ARN of the environment's permission boundary, set on the delivery role. | `string` | n/a | yes |
 | tags | Tags for every resource in the module. Take them from the context module. | `map(string)` | n/a | yes |
 | vpc\_id | Identifier of the VPC to record. | `string` | n/a | yes |
-| kms\_key\_arn | Customer managed key that encrypts the log group. With null, CloudWatch encrypts with a key it owns. | `string` | `null` | no |
 | max\_aggregation\_interval | Seconds over which a flow is aggregated into one record: 60 or 600. | `number` | `60` | no |
 | retention\_in\_days | How long flow logs are kept. | `number` | `90` | no |
 | traffic\_type | Which traffic to record: ALL, ACCEPT or REJECT. | `string` | `"ALL"` | no |
