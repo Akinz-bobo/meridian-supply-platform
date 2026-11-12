@@ -4,3 +4,9 @@
 environment    = "dev"
 aws_region     = "eu-west-1"
 aws_account_id = "111111111111"
+
+# Network. See docs/architecture/environments.md for the address plan.
+
+vpc_cidr           = "10.10.0.0/16"
+availability_zones = ["eu-west-1a", "eu-west-1b", "eu-west-1c"]
+single_nat_gateway = true

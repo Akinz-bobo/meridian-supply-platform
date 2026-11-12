@@ -32,3 +32,19 @@ variable "aws_endpoint_url" {
   type        = string
   default     = null
 }
+
+variable "vpc_cidr" {
+  description = "Address range of the environment's VPC, a /16 from the address plan."
+  type        = string
+}
+
+variable "availability_zones" {
+  description = "Availability zones the environment is spread across."
+  type        = list(string)
+}
+
+variable "single_nat_gateway" {
+  description = "Share one NAT gateway between all zones. Cheaper and less resilient, so only dev sets it."
+  type        = bool
+  default     = false
+}
