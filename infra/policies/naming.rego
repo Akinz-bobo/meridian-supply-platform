@@ -14,6 +14,7 @@ name_attribute := {
 	"aws_cloudwatch_event_archive": "name",
 	"aws_cloudwatch_event_bus": "name",
 	"aws_cloudwatch_event_rule": "name",
+	"aws_cloudwatch_metric_alarm": "alarm_name",
 	"aws_db_instance": "identifier",
 	"aws_db_subnet_group": "name",
 	"aws_dynamodb_table": "name",

@@ -141,3 +141,10 @@ test_allows_an_event_rule_with_the_prefix if {
 	rc := fixtures.create("aws_cloudwatch_event_rule", "r", {"name": "meridian-prod-events-log-all"})
 	count(naming.deny) == 0 with input as fixtures.plan("prod", [rc])
 }
+
+test_denies_an_alarm_without_the_prefix if {
+	rc := fixtures.create("aws_cloudwatch_metric_alarm", "a", {"alarm_name": "dlq-not-empty"})
+	messages := naming.deny with input as fixtures.plan("prod", [rc])
+	some msg in messages
+	contains(msg, "POL-NAME-1")
+}
