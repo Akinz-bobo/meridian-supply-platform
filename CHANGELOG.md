@@ -4,6 +4,10 @@ Notable changes, newest first. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-12
+
+Milestone 4: messaging and events. The bus, consumer queues with dead-letter queues, topics and the movement stream, an event contract with a validator, and a check that follows real events through the environment on every pull request.
+
 ### Added
 
 - Messaging: a `messaging` state layer, a tested `event-bus` module with an archive, an event log and a publish policy per producer, and the event envelope as JSON Schema with a dependency-free validator and `make contract-test`.
@@ -93,7 +97,8 @@ Milestone 0: planning and architecture. No infrastructure exists yet. This relea
 - Roadmap with milestone order, dependencies and exit criteria.
 - CI for documentation: formatting, relative links and the decision record index.
 
-[Unreleased]: https://github.com/Akinz-bobo/meridian-supply-platform/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/Akinz-bobo/meridian-supply-platform/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/Akinz-bobo/meridian-supply-platform/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Akinz-bobo/meridian-supply-platform/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Akinz-bobo/meridian-supply-platform/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Akinz-bobo/meridian-supply-platform/compare/v0.1.0...v0.2.0
