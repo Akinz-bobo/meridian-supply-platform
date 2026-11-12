@@ -393,6 +393,36 @@ check 'it removes untagged images and keeps a bounded number of tagged ones' jq 
   '.lifecyclePolicyText | fromjson | .rules | length == 2 and any(.selection.tagStatus == "untagged")' \
   <<<"$(as_account "$account" aws ecr get-lifecycle-policy --repository-name "meridian-$environment-sample" --output json 2>/dev/null || echo '{}')"
 
+# Compute layer: the load balancer.
+balancer="$(as_account "$account" aws elbv2 describe-load-balancers --names "meridian-$environment-compute" \
+  --output json 2>/dev/null | jq -c '.LoadBalancers[0] // {}' || echo '{}')"
+balancer_arn="$(jq -r '.LoadBalancerArn // empty' <<<"$balancer")"
+check 'the load balancer is active' jq -e '.State.Code == "active" and .Type == "application"' <<<"$balancer"
+lb_group="$(jq -r --arg p "$prefix" '.SecurityGroups[]? | select(.GroupName == $p + "-lb") | .GroupId' <<<"$groups")"
+check 'it carries the load balancer security group and no other' jq -e --arg g "$lb_group" \
+  '.SecurityGroups == [$g]' <<<"$balancer"
+listeners="$(as_account "$account" aws elbv2 describe-listeners --load-balancer-arn "$balancer_arn" --output json \
+  2>/dev/null || echo '{}')"
+check 'its only listener is HTTPS on 443' jq -e \
+  '[.Listeners[]? | [.Port, .Protocol]] == [[443, "HTTPS"]]' <<<"$listeners"
+check 'the listener accepts TLS 1.2 and 1.3 only' jq -e \
+  '.Listeners[0].SslPolicy | startswith("ELBSecurityPolicy-TLS13-")' <<<"$listeners"
+check 'a request that matches no rule is refused by the load balancer' jq -e \
+  '.Listeners[0].DefaultActions | length == 1 and .[0].Type == "fixed-response" and .[0].FixedResponseConfig.StatusCode == "404"' \
+  <<<"$listeners"
+attributes="$(as_account "$account" aws elbv2 describe-load-balancer-attributes --load-balancer-arn "$balancer_arn" \
+  --output json 2>/dev/null | jq -c '[.Attributes[]? | {(.Key): .Value}] | add // {}' || echo '{}')"
+check 'it drops malformed headers and ambiguous requests' jq -e \
+  '.["routing.http.drop_invalid_header_fields.enabled"] == "true" and .["routing.http.desync_mitigation_mode"] == "strictest"' \
+  <<<"$attributes"
+if [ "$disposable" != true ]; then
+  check 'it is protected from deletion' jq -e '.["deletion_protection.enabled"] == "true"' <<<"$attributes"
+fi
+domain="$(hcl_value domain_name "$env_dir/env.tfvars")"
+check "a certificate is issued for $domain" jq -e --arg d "$domain" \
+  'any(.CertificateSummaryList[]?; .DomainName == $d and .Status == "ISSUED")' \
+  <<<"$(as_account "$account" aws acm list-certificates --output json 2>/dev/null || echo '{}')"
+
 while IFS= read -r layer; do
   check "state for the $layer layer is in the shared bucket" \
     as_account "$state_account" aws s3api head-object --bucket "$state_bucket" --key "$1/$layer/terraform.tfstate"
