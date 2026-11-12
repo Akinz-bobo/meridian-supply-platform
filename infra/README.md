@@ -15,6 +15,7 @@ infra/
       env.tfvars     the values that make this environment different
       foundation/    state layer: network, keys, identity
       data/          state layer: stores
+      messaging/     state layer: event bus, queues, topics, stream
     staging/
     production/
 ```
@@ -119,6 +120,7 @@ This creates a skeleton that meets the [module standards](../docs/architecture/m
 | [context](modules/context/README.md)                           | Nothing. Builds the names and tags every other module uses                            |
 | [data-bucket](modules/data-bucket/README.md)                   | A private, encrypted, versioned bucket with lifecycle rules and access policies       |
 | [dynamodb-table](modules/dynamodb-table/README.md)             | A table with encryption, point-in-time recovery, indexes, streams and access policies |
+| [event-bus](modules/event-bus/README.md)                       | The event bus with its archive, event log and a publish policy per producer           |
 | [kms-key](modules/kms-key/README.md)                           | A rotating encryption key with an alias and a key policy that delegates to IAM        |
 | [permission-boundary](modules/permission-boundary/README.md)   | The limit on what any workload role in an environment can be granted                  |
 | [postgres-database](modules/postgres-database/README.md)       | PostgreSQL on RDS with managed credentials, enforced TLS, backups and logs            |
