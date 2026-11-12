@@ -76,7 +76,9 @@ flowchart LR
     sp --> done([Summary on the run])
 ```
 
-Environments are applied in promotion order, one at a time, in a single job. Each must pass its checks before the next begins, so a problem stops in `dev`. This is deliberately not parallel: on merge the order is the point.
+Environments are applied in promotion order, one at a time. Each is a job of its own, with its own emulator and its own time limit, and they never run together. Each must pass its checks before the next begins: if `dev` fails, `staging` and `production` are cancelled before they start. This is deliberately not parallel: on merge the order is the point.
+
+The three used to share one job. By the time the services layer existed that job took 24.9 minutes of a 30 minute limit, so it was split before another layer could push it over.
 
 A run on `main` is never cancelled by a newer one. Cancelling an apply halfway is how state and reality come apart.
 
