@@ -1,6 +1,6 @@
 # A message in a dead-letter queue
 
-What to do when the alarm `<queue>-dlq-not-empty` fires.
+What to do when the alarm `<queue>-dlq-not-empty` fires, or `<queue>-backlog`.
 
 - [What it means](#what-it-means)
 - [First five minutes](#first-five-minutes)
@@ -22,6 +22,10 @@ It is one of two things:
 | **The message is one the consumer cannot handle.** A producer sent something the contract does not allow, or the consumer has a bug that one message exposes | One or a few messages, all alike. The rest flow normally                                   | One business fact is not applied          |
 
 Nothing has been lost. The message is intact, and every other consumer of the same event got its own copy and is unaffected.
+
+There is a third, rarer case: **the bus could not deliver the event to the queue at all**, because the queue's policy or its key refused it. The bus retries for an hour and then parks the event in the same dead-letter queue. Such a message looks different. Its body is the whole EventBridge event, with `detail-type`, `source` and `detail` at the top level, and not the bare envelope. If you see that, the consumer never received anything. Check the queue policy and the messaging key's policy before anything else, because every event for that consumer is failing the same way.
+
+A second alarm, `<queue>-backlog`, fires when the oldest message in the main queue has waited more than 15 minutes. It means the consumer is down or cannot keep up. Nothing is in the dead-letter queue in that case, because nothing was received. Treat it as an outage of the consuming service. Messages are kept for four days, so there is time, and it is finite.
 
 ## First five minutes
 

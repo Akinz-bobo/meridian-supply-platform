@@ -11,6 +11,11 @@ Notable changes, newest first. The format follows [Keep a Changelog](https://kee
 - Topics: a tested `notification-topic` module, an alarms topic that every dead-letter queue alarm notifies, and a notifications topic fed by a rule for the events meant for people.
 - Movement stream: a tested `event-stream` module with separate produce and consume policies, and the Kinesis stream for warehouse movements in every environment.
 - Event flow check: `make event-check` publishes events and follows them through fan-out, dead-lettering, redrive, alarm notification, the notifications topic and stream ordering, in the pipeline. A runbook for a message in a dead-letter queue.
+- Alarm subscriptions can be set per environment through `alarm_subscriptions`.
+
+### Fixed
+
+- An event the bus cannot deliver to a consumer queue is parked in its dead-letter queue instead of being discarded, and a second alarm fires when a consumer falls behind.
 
 ## [0.4.0] - 2026-11-12
 
