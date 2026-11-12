@@ -277,6 +277,30 @@ if [ "$disposable" != true ]; then
   check 'it has a replica to fail over to' jq -e '(.MemberClusters | length) >= 2' <<<"$cache"
 fi
 
+# Data layer: backups.
+vault="$(as_account "$account" aws backup describe-backup-vault --backup-vault-name "meridian-$environment-backup" \
+  --output json 2>/dev/null || echo '{}')"
+backup_key_arn="$(as_account "$account" aws kms describe-key --key-id "alias/meridian-$environment-backup" --output json \
+  2>/dev/null | jq -r '.KeyMetadata.Arn // empty' || true)"
+check 'the backup vault exists and is encrypted with its own key' jq -e --arg k "$backup_key_arn" \
+  '.EncryptionKeyArn == $k and ($k | length) > 0' <<<"$vault"
+check 'the vault policy forbids deleting a recovery point by hand' jq -e \
+  '.Policy | fromjson | any(.Statement[]; .Effect == "Deny" and (.Action | index("backup:DeleteRecoveryPoint") != null))' \
+  <<<"$(as_account "$account" aws backup get-backup-vault-access-policy --backup-vault-name "meridian-$environment-backup" --output json 2>/dev/null || echo '{}')"
+if [ "$disposable" != true ]; then
+  check 'the vault is locked with a minimum retention' jq -e '.Locked and .MinRetentionDays >= 7' <<<"$vault"
+fi
+plan_id="$(as_account "$account" aws ssm get-parameter --name "/meridian/$environment/backup/plan-id" --output json \
+  2>/dev/null | jq -r '.Parameter.Value // empty' || true)"
+check 'the backup plan runs daily and keeps backups for at least a week' jq -e \
+  '.BackupPlan.Rules | length > 0 and all(.Lifecycle.DeleteAfterDays >= 7)' \
+  <<<"$(as_account "$account" aws backup get-backup-plan --backup-plan-id "$plan_id" --output json 2>/dev/null || echo '{}')"
+check 'the plan selects stores by tag' jq -e '.BackupSelectionsList | length == 1' \
+  <<<"$(as_account "$account" aws backup list-backup-selections --backup-plan-id "$plan_id" --output json 2>/dev/null || echo '{}')"
+check 'the backup role carries a boundary' jq -e \
+  '.Role.PermissionsBoundary.PermissionsBoundaryArn | endswith("AWSBackupServiceRolePolicyForBackup")' \
+  <<<"$(as_account "$account" aws iam get-role --role-name "meridian-$environment-backup-role" --output json 2>/dev/null || echo '{}')"
+
 while IFS= read -r layer; do
   check "state for the $layer layer is in the shared bucket" \
     as_account "$state_account" aws s3api head-object --bucket "$state_bucket" --key "$1/$layer/terraform.tfstate"
