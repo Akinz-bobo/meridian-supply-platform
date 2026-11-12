@@ -152,3 +152,9 @@ variable "domain_name" {
   description = "Host name the environment is served under. The load balancer's certificate is issued for it."
   type        = string
 }
+
+variable "service_desired_count" {
+  description = "Tasks each ECS service runs, and the fewest autoscaling keeps."
+  type        = number
+  default     = 2
+}

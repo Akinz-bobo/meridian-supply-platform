@@ -40,3 +40,7 @@ cache_replicas  = 0
 # Where the environment is served. The .example domain is reserved for
 # documentation: replace it with a domain you control.
 domain_name = "dev.meridian.example"
+
+# Services. Dev runs one task of each, which is enough to work on and not
+# enough to survive losing it.
+service_desired_count = 1

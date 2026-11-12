@@ -125,6 +125,8 @@ This creates a skeleton that meets the [module standards](../docs/architecture/m
 | [context](modules/context/README.md)                           | Nothing. Builds the names and tags every other module uses                                |
 | [data-bucket](modules/data-bucket/README.md)                   | A private, encrypted, versioned bucket with lifecycle rules and access policies           |
 | [dynamodb-table](modules/dynamodb-table/README.md)             | A table with encryption, point-in-time recovery, indexes, streams and access policies     |
+| [ecs-cluster](modules/ecs-cluster/README.md)                   | An ECS cluster for Fargate, with container metrics and recorded shell sessions            |
+| [ecs-service](modules/ecs-service/README.md)                   | A hardened Fargate service with its own security group, routing, rollback and scaling     |
 | [event-bus](modules/event-bus/README.md)                       | The event bus with its archive, event log and a publish policy per producer               |
 | [event-consumer-queue](modules/event-consumer-queue/README.md) | A consumer's queue, dead-letter queue, rule on the bus and alarm                          |
 | [event-stream](modules/event-stream/README.md)                 | A Kinesis stream with encryption and separate produce and consume policies                |
