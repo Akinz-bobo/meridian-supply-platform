@@ -340,6 +340,30 @@ for consumer in inventory-product-published inventory-goods-received budget-good
     <<<"$(as_account "$account" aws cloudwatch describe-alarms --alarm-names "$queue-dlq-not-empty" --output json 2>/dev/null || echo '{}')"
 done
 
+# Messaging layer: topics.
+for topic in alarms notifications; do
+  topic_arn="arn:aws:sns:$region:$account:meridian-$environment-$topic"
+  attributes="$(as_account "$account" aws sns get-topic-attributes --topic-arn "$topic_arn" --output json 2>/dev/null |
+    jq -c '.Attributes // {}' || echo '{}')"
+  check "the $topic topic exists and is encrypted with the messaging key" jq -e --arg k "$messaging_key_arn" \
+    '.KmsMasterKeyId == $k' <<<"$attributes"
+  check "the $topic topic refuses publishing without TLS" jq -e \
+    '.Policy | fromjson | any(.Statement[]; .Effect == "Deny" and .Condition.Bool["aws:SecureTransport"] == "false")' \
+    <<<"$attributes"
+done
+check 'only CloudWatch, for this account, may publish to the alarms topic' jq -e --arg a "$account" \
+  '.Attributes.Policy | fromjson | [.Statement[] | select(.Effect == "Allow")]
+    | length == 1 and .[0].Principal.Service == "cloudwatch.amazonaws.com"
+      and .[0].Condition.StringEquals["aws:SourceAccount"] == $a' \
+  <<<"$(as_account "$account" aws sns get-topic-attributes --topic-arn "arn:aws:sns:$region:$account:meridian-$environment-alarms" --output json 2>/dev/null || echo '{}')"
+check 'every dead-letter queue alarm notifies the alarms topic' jq -e --arg t "arn:aws:sns:$region:$account:meridian-$environment-alarms" \
+  '[.MetricAlarms[] | select(.AlarmName | endswith("-dlq-not-empty"))]
+    | length >= 3 and all(.AlarmActions == [$t] and .OKActions == [$t])' \
+  <<<"$(as_account "$account" aws cloudwatch describe-alarms --alarm-name-prefix "meridian-$environment-" --output json 2>/dev/null || echo '{}')"
+check 'a rule sends notification events to the notifications topic' jq -e \
+  '.Targets | length == 1 and (.[0].Arn | endswith("-notifications")) and .[0].InputPath == "$.detail"' \
+  <<<"$(as_account "$account" aws events list-targets-by-rule --rule "meridian-$environment-notifications" --event-bus-name "$bus" --output json 2>/dev/null || echo '{}')"
+
 while IFS= read -r layer; do
   check "state for the $layer layer is in the shared bucket" \
     as_account "$state_account" aws s3api head-object --bucket "$state_bucket" --key "$1/$layer/terraform.tfstate"
