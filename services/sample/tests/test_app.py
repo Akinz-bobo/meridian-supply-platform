@@ -16,6 +16,16 @@ class Identity(unittest.TestCase):
     def test_reports_no_identity_outside_a_platform(self):
         self.assertEqual(app.identity(environ={}), {"source": "none", "role": None, "credentials": False})
 
+    def test_reports_static_keys_for_what_they_are_and_does_not_return_them(self):
+        result = app.identity(environ={"AWS_ACCESS_KEY_ID": "AKIAEXAMPLE", "AWS_SECRET_ACCESS_KEY": "secret-value"})
+        self.assertEqual(result, {"source": "environment-variables", "role": None, "credentials": True})
+        self.assertNotIn("AKIAEXAMPLE", json.dumps(result))
+
+    def test_prefers_the_platform_endpoint_to_static_keys(self):
+        environ = {app.ECS_CREDENTIALS: "/v2/credentials/abc", "AWS_ACCESS_KEY_ID": "AKIAEXAMPLE"}
+        result = app.identity(environ=environ, fetch=lambda url, headers: {"RoleArn": "arn:aws:iam::1:role/r", "AccessKeyId": "x"})
+        self.assertEqual(result["source"], "ecs-task-role")
+
     def test_reports_the_ecs_task_role(self):
         seen = {}
 

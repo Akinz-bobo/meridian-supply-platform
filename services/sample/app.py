@@ -52,6 +52,11 @@ def identity(environ=os.environ, fetch=None):
         if token_file and os.path.exists(token_file):
             with open(token_file, encoding="utf-8") as handle:
                 headers["Authorization"] = handle.read().strip()
+    elif environ.get("AWS_ACCESS_KEY_ID"):
+        # Static keys in the environment. A real platform never does this:
+        # it serves short-lived credentials from an endpoint. A local
+        # emulator does, and it is reported for what it is.
+        return {"source": "environment-variables", "role": environ.get("ROLE_ARN"), "credentials": True}
     else:
         return {"source": "none", "role": None, "credentials": False}
 
