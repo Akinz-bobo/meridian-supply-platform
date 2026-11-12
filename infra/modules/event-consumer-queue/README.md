@@ -16,6 +16,8 @@ What a caller needs to know:
 - **One call per consumer per interest.** `budget` wanting `GoodsReceived` is one call. `inventory` wanting the same event is another, with its own queue. Neither can see or slow the other.
 - **The consumer receives the envelope.** The rule delivers the event's detail, without the wrapper EventBridge puts around it.
 - **Only this module's rule can deliver to the queue.** The queue policy admits EventBridge, and only for the ARN of the rule created here.
+- **An event the bus cannot deliver is parked, not dropped.** If delivery to the queue fails, because of a wrong policy or an unusable key, the bus retries for an hour and then sends the event to the dead-letter queue. Without that it would discard the event after a day and record nothing. Such a message is the whole EventBridge event, wrapper included, and not the bare envelope.
+- **A second alarm fires when the consumer falls behind**: the oldest message has waited more than `backlog_alarm_minutes`. A consumer that is down fails nothing, so nothing would ever reach the dead-letter queue.
 - **A message that fails five times is moved to the dead-letter queue**, kept for 14 days, and raises an alarm. One message is enough. Pass the alarms topic in `alarm_actions`.
 - **Attach `consume_policy_json` to the consumer's role.** It can receive, delete and extend the visibility of messages on this queue. It cannot send to it, purge it, or read the dead-letter queue, which is for people.
 - **Set `visibility_timeout_seconds` to several times the longest processing time.** Shorter, and a slow message is delivered to a second receiver while the first is still working on it.
@@ -78,7 +80,9 @@ output "consume_policy_json" {
 | source\_prefix | First part of every event's source on the bus. The rule matches events whose source starts with it. | `string` | n/a | yes |
 | tags | Tags for every resource in the module. Take them from the context module of the consuming service. | `map(string)` | n/a | yes |
 | alarm\_actions | ARNs notified when the dead-letter queue alarm changes state. Pass the alarms topic. | `list(string)` | `[]` | no |
+| backlog\_alarm\_minutes | Raise an alarm when the oldest message in the queue has waited this long. It must be well inside retention\_days, or messages are discarded before anyone is told. | `number` | `15` | no |
 | dead\_letter\_retention\_days | Days a failed message is kept in the dead-letter queue. | `number` | `14` | no |
+| delivery\_retry\_minutes | How long the bus keeps trying to deliver an event to the queue before parking it in the dead-letter queue. | `number` | `60` | no |
 | max\_receive\_count | Times a message may be received without being deleted before it is moved to the dead-letter queue. | `number` | `5` | no |
 | retention\_days | Days an unprocessed message is kept in the queue before SQS discards it. | `number` | `4` | no |
 | visibility\_timeout\_seconds | How long a received message is hidden from other receivers. Set it to several times the consumer's longest processing time, or a slow message is processed twice. | `number` | `60` | no |
@@ -88,6 +92,7 @@ output "consume_policy_json" {
 | Name | Description |
 | ---- | ----------- |
 | alarm\_name | Name of the alarm that fires when the dead-letter queue is not empty. |
+| backlog\_alarm\_name | Name of the alarm that fires when the oldest message has waited too long. |
 | consume\_policy\_json | IAM policy that lets a role receive and acknowledge messages from the queue. It cannot send to it, purge it or read the dead-letter queue. Attach it to the consumer's workload role. |
 | dead\_letter\_queue\_arn | ARN of the dead-letter queue. |
 | dead\_letter\_queue\_url | URL of the dead-letter queue, for inspecting and redriving failed messages. |
@@ -102,6 +107,7 @@ output "consume_policy_json" {
 | ---- | ---- |
 | [aws_cloudwatch_event_rule.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_event_rule) | resource |
 | [aws_cloudwatch_event_target.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_event_target) | resource |
+| [aws_cloudwatch_metric_alarm.backlog](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_metric_alarm) | resource |
 | [aws_cloudwatch_metric_alarm.dead_letter](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_metric_alarm) | resource |
 | [aws_sqs_queue.dead_letter](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/sqs_queue) | resource |
 | [aws_sqs_queue.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/sqs_queue) | resource |
