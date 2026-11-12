@@ -12,6 +12,10 @@
 # This tests the rule, not ElastiCache: that ElastiCache applies the rule,
 # and that only the right IAM role can become the user, cannot be checked
 # on the emulator.
+#
+# The jq programs in this file are single-quoted on purpose: $g is a jq
+# variable set with --arg, not a shell variable.
+# shellcheck disable=SC2016
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
