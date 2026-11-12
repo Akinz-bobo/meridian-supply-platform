@@ -20,3 +20,6 @@ state_key_prefix   = "production"
 # on, and the pipeline cannot delete encryption keys. False is the default.
 # It is stated so that the decision is visible in this file.
 disposable = false
+# Data stores. Production keeps two cache replicas, one in each other zone.
+
+cache_replicas = 2

@@ -126,3 +126,15 @@ variable "database_backup_retention_days" {
   type        = number
   default     = 14
 }
+
+variable "cache_node_type" {
+  description = "Size of each cache node."
+  type        = string
+  default     = "cache.t4g.small"
+}
+
+variable "cache_replicas" {
+  description = "Cache replicas in other zones. Zero means no automatic failover."
+  type        = number
+  default     = 1
+}
