@@ -182,6 +182,33 @@ check 'new EBS volumes are encrypted by default' jq -e '.EbsEncryptionByDefault'
 check 'an access analyzer is active' jq -e '[.analyzers[]? | select(.status == "ACTIVE")] | length == 1' \
   <<<"$(as_account "$account" aws accessanalyzer list-analyzers --output json 2>/dev/null || echo '{}')"
 
+# Data layer: object storage.
+data_key_arn="$(as_account "$account" aws kms describe-key --key-id "alias/meridian-$environment-data" --output json \
+  2>/dev/null | jq -r '.KeyMetadata.Arn // empty' || true)"
+uploads="meridian-$environment-catalog-uploads-$account-$region"
+s3() { as_account "$account" aws s3api "$@" --bucket "$uploads" --output json 2>/dev/null || echo '{}'; }
+check "the supplier uploads bucket $uploads exists" as_account "$account" aws s3api head-bucket --bucket "$uploads"
+check 'it blocks every form of public access' jq -e \
+  '.PublicAccessBlockConfiguration | .BlockPublicAcls and .IgnorePublicAcls and .BlockPublicPolicy and .RestrictPublicBuckets' \
+  <<<"$(s3 get-public-access-block)"
+check 'it keeps previous versions' jq -e '.Status == "Enabled"' <<<"$(s3 get-bucket-versioning)"
+check 'it is encrypted by default with the data key' jq -e --arg k "$data_key_arn" \
+  '.ServerSideEncryptionConfiguration.Rules[0]
+    | .BucketKeyEnabled and .ApplyServerSideEncryptionByDefault.SSEAlgorithm == "aws:kms"
+      and .ApplyServerSideEncryptionByDefault.KMSMasterKeyID == $k' <<<"$(s3 get-bucket-encryption)"
+check 'its policy refuses requests without TLS' jq -e \
+  '.Policy | fromjson | any(.Statement[]; .Effect == "Deny" and .Condition.Bool["aws:SecureTransport"] == "false")' \
+  <<<"$(s3 get-bucket-policy)"
+check 'it is classified as confidential' jq -e \
+  'any(.TagSet[]?; .Key == "DataClassification" and .Value == "confidential")' <<<"$(s3 get-bucket-tagging)"
+check 'it expires objects and old versions' jq -e \
+  '.Rules[]? | select(.ID == "retention") | .Expiration.Days == 365 and .NoncurrentVersionExpiration.NoncurrentDays >= 7' \
+  <<<"$(s3 get-bucket-lifecycle-configuration)"
+check 'it sends object events to EventBridge' jq -e 'has("EventBridgeConfiguration")' \
+  <<<"$(s3 get-bucket-notification-configuration)"
+check 'its name is published for the catalog service' \
+  as_account "$account" aws ssm get-parameter --name "/meridian/$environment/catalog/uploads-bucket-name"
+
 while IFS= read -r layer; do
   check "state for the $layer layer is in the shared bucket" \
     as_account "$state_account" aws s3api head-object --bucket "$state_bucket" --key "$1/$layer/terraform.tfstate"
