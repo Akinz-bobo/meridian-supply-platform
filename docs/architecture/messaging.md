@@ -2,7 +2,7 @@
 
 How services tell each other what happened: the bus, the contract every event follows, and who is allowed to say what. The reasoning is in [decision record 0006](../adr/0006-event-backbone-and-messaging-conventions.md), and the list of events is the [event catalogue](events.md).
 
-This document grows through milestone 4. It covers the bus, the contract, consumer queues and notification topics. The movement stream is added when it is built.
+It covers the bus, the contract, consumer queues, notification topics and the movement stream.
 
 - [The shape of it](#the-shape-of-it)
 - [The bus](#the-bus)
@@ -10,6 +10,7 @@ This document grows through milestone 4. It covers the bus, the contract, consum
 - [Who may publish what](#who-may-publish-what)
 - [Consumer queues](#consumer-queues)
 - [Topics](#topics)
+- [The movement stream](#the-movement-stream)
 - [The messaging layer](#the-messaging-layer)
 - [How it is enforced](#how-it-is-enforced)
 - [What the emulator does not prove](#what-the-emulator-does-not-prove)
@@ -125,6 +126,34 @@ flowchart LR
 **Subscriptions are not in this repository.** Who is on call, and which chat channel, differ by environment and change without a deployment. The module takes them as an input, and an environment adds them in its own values. An environment with no subscriptions still has working topics: the messages go nowhere.
 
 **The key policy.** CloudWatch and EventBridge publish as services, so both are named in the topic policy and, in the foundation layer, in the messaging key's policy. Without the second, a message is refused at encryption and the alarm silently notifies nobody. The baseline review of this milestone checks for exactly that.
+
+## The movement stream
+
+Warehouse scans do not go over the bus. They go through a Kinesis stream, `meridian-<env>-inventory-movement-stream`, built by the [`event-stream` module](../../infra/modules/event-stream/README.md).
+
+```mermaid
+flowchart LR
+    scanners[Handheld scanners] --> api[Scan intake API]
+    api -- "PutRecord, key = warehouse" --> stream[[Movement stream<br/>72 hours]]
+    stream -- "in order per warehouse" --> inventory[Inventory<br/>applies each movement to the ledger]
+    stream --> lake[Analytics<br/>lands every movement in the data lake]
+```
+
+| Question                          | Bus and queue                                      | Stream                                                              |
+| --------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------- |
+| Order                             | None promised                                      | In order per partition key                                          |
+| Volume                            | Business events, at the pace of business decisions | Hundreds of thousands of scans a day, in bursts at shift start      |
+| Several readers of the same data  | A queue each, fed separately                       | Each reads the same records at its own position                     |
+| Reading again                     | Replay from the archive, to a rule                 | Any reader, any time within retention                               |
+| A record that cannot be processed | Moves to a dead-letter queue                       | Blocks its shard until handled. The consumer must decide what to do |
+
+**The partition key is the warehouse.** The order that matters is the order of movements within one warehouse: a receipt must be applied before the pick that takes from it. Movements in different warehouses are independent, so they may be processed in parallel.
+
+A coarser key, one for everything, would put all traffic on one shard. A finer one, such as the batch, would spread load better and lose the order between a batch and the zone it moves through. If one warehouse ever outgrows a shard, the key becomes warehouse and zone, which keeps the order that matters and is a decision to make with real traffic in front of us.
+
+**The last row of the table is the cost of a stream.** There is no dead-letter queue. A consumer that fails on a record and retries for ever stops everything behind it in that shard. The inventory service therefore applies each movement in the idempotent transaction described in the [inventory data model](inventory-data-model.md#recording-a-movement), and a movement it cannot apply, such as one that would make stock negative, is recorded as a `StockDiscrepancyDetected` event and skipped. It is never retried for ever.
+
+**Retention is 72 hours**, so that the inventory service can be down over a weekend and still read every movement when it returns.
 
 ## The messaging layer
 

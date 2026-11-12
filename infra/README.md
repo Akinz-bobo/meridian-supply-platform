@@ -122,6 +122,7 @@ This creates a skeleton that meets the [module standards](../docs/architecture/m
 | [dynamodb-table](modules/dynamodb-table/README.md)             | A table with encryption, point-in-time recovery, indexes, streams and access policies |
 | [event-bus](modules/event-bus/README.md)                       | The event bus with its archive, event log and a publish policy per producer           |
 | [event-consumer-queue](modules/event-consumer-queue/README.md) | A consumer's queue, dead-letter queue, rule on the bus and alarm                      |
+| [event-stream](modules/event-stream/README.md)                 | A Kinesis stream with encryption and separate produce and consume policies            |
 | [kms-key](modules/kms-key/README.md)                           | A rotating encryption key with an alias and a key policy that delegates to IAM        |
 | [notification-topic](modules/notification-topic/README.md)     | An encrypted SNS topic that admits named services and refuses plain transport         |
 | [permission-boundary](modules/permission-boundary/README.md)   | The limit on what any workload role in an environment can be granted                  |
