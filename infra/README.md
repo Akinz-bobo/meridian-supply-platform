@@ -43,6 +43,7 @@ make test-emulator               # module apply tests, against the emulator
 make smoke                       # ask the AWS API whether the environment looks right
 make state-audit                 # fail if the remote state holds a secret value
 make data-check                  # use the stores the way a service would: key design, SQL, cache access rule
+make event-check                 # send events through the environment and follow them
 make policy                      # plan a layer and check it against the policies
 ```
 
