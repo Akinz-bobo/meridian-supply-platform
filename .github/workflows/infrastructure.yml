@@ -132,8 +132,8 @@ jobs:
       - name: Rehearse the teardown
         run: |
           for environment in $ENVIRONMENTS; do
-            echo "::group::destroy $environment"
-            make destroy-all ENV="$environment"
+            echo "::group::teardown $environment"
+            make teardown ENV="$environment"
             echo "::endgroup::"
           done
 
