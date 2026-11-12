@@ -41,7 +41,7 @@ make test                        # module plan tests. Nothing needs to be runnin
 make test-emulator               # module apply tests, against the emulator
 make smoke                       # ask the AWS API whether the environment looks right
 make state-audit                 # fail if the remote state holds a secret value
-make data-check                  # use the stores the way a service would: inventory key design, SQL on the catalog database
+make data-check                  # use the stores the way a service would: key design, SQL, cache access rule
 make policy                      # plan a layer and check it against the policies
 ```
 
@@ -121,6 +121,7 @@ This creates a skeleton that meets the [module standards](../docs/architecture/m
 | [kms-key](modules/kms-key/README.md)                           | A rotating encryption key with an alias and a key policy that delegates to IAM        |
 | [permission-boundary](modules/permission-boundary/README.md)   | The limit on what any workload role in an environment can be granted                  |
 | [postgres-database](modules/postgres-database/README.md)       | PostgreSQL on RDS with managed credentials, enforced TLS, backups and logs            |
+| [redis-cache](modules/redis-cache/README.md)                   | A Valkey cache with encryption, IAM-authenticated users and automatic failover        |
 | [service-config](modules/service-config/README.md)             | A service's parameters and secrets under its own path, with the policy to read them   |
 | [state-bucket](modules/state-bucket/README.md)                 | The encrypted, versioned bucket that holds Terraform state                            |
 | [tier-security-groups](modules/tier-security-groups/README.md) | One security group per tier, linked by group reference                                |
