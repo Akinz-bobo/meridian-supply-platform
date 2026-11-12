@@ -40,6 +40,16 @@ for env in "$@"; do
     dir="$root/infra/environments/$env/$layer"
     plan="$work/$env-$layer"
 
+    # The services layer deploys whatever image each service's parameter
+    # names, so the images of this branch are pushed before it is planned.
+    # The plan then shows the deployment this branch would really make.
+    if [ "$layer" = services ] && ! "$root/scripts/push-images.sh" "$env" >"$plan.images.log" 2>&1; then
+      failed=1
+      rows+="| \`$env\` | \`$layer\` | | | | | :x: image build failed |"$'\n'
+      details+=$'\n'"<details><summary><code>$env/$layer</code>: image build failed</summary>"$'\n\n```\n'"$(tail -n 30 "$plan.images.log")"$'\n```\n\n</details>\n'
+      continue
+    fi
+
     if ! TF_CLI_ARGS_init=-no-color make --no-print-directory -C "$root" init ENV="$env" LAYER="$layer" >"$plan.log" 2>&1 ||
       ! terraform -chdir="$dir" plan -input=false -lock=false -no-color \
         -var-file=../env.tfvars -out="$plan.bin" >>"$plan.log" 2>&1; then
