@@ -2,6 +2,12 @@
 # needed.
 
 mock_provider "aws" {
+  mock_data "aws_region" {
+    defaults = {
+      region = "eu-west-1"
+    }
+  }
+
   mock_data "aws_iam_policy_document" {
     defaults = {
       json = "{\"Version\":\"2012-10-17\",\"Statement\":[]}"
@@ -14,6 +20,8 @@ variables {
   vpc_id         = "vpc-0123456789abcdef0"
   account_id     = "333333333333"
   log_group_name = "/meridian/prod/network/flow-logs"
+
+  permissions_boundary_arn = "arn:aws:iam::333333333333:policy/meridian-prod-workload-boundary"
   tags = {
     Project = "meridian"
   }
@@ -129,4 +137,25 @@ run "rejects_a_malformed_account_id" {
   }
 
   expect_failures = [var.account_id]
+}
+
+run "the_delivery_role_carries_the_permission_boundary" {
+  command = plan
+
+  assert {
+    condition     = aws_iam_role.this.permissions_boundary == "arn:aws:iam::333333333333:policy/meridian-prod-workload-boundary"
+    error_message = "The delivery role must carry the boundary it was given."
+  }
+}
+
+run "the_delivery_policy_names_exactly_this_log_group" {
+  command = plan
+
+  assert {
+    condition = toset(one(data.aws_iam_policy_document.deliver.statement).resources) == toset([
+      "arn:aws:logs:eu-west-1:333333333333:log-group:/meridian/prod/network/flow-logs",
+      "arn:aws:logs:eu-west-1:333333333333:log-group:/meridian/prod/network/flow-logs:log-stream:*",
+    ])
+    error_message = "The delivery role may write to its own log group and nothing else."
+  }
 }
