@@ -81,6 +81,8 @@ See [local development](docs/guides/local-development.md).
 | [Encryption standard](docs/architecture/encryption.md)                      | What is encrypted, with which key, who can use it and how that is enforced                            |
 | [Access model](docs/architecture/access-model.md)                           | Who can do what, how they authenticate, and what contains each of them                                |
 | [Secrets and configuration](docs/architecture/secrets-and-configuration.md) | One path per service, access by path, and how secret values stay out of Terraform state               |
+| [Threat model](docs/architecture/security/threat-model.md)                  | What could go wrong in the network and identity layers, what stops it and what is left                |
+| [Baseline review](docs/architecture/security/baseline-review.md)            | The review of milestone 2: twelve findings, each fixed or tracked                                     |
 
 Changes are summarised in the [changelog](CHANGELOG.md).
 
