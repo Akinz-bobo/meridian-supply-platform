@@ -5,6 +5,8 @@ How each environment's network is laid out, why, and how to check it. The networ
 - [Layout](#layout)
 - [Address plan](#address-plan)
 - [Routing](#routing)
+- [Endpoints](#endpoints)
+- [Flow logs](#flow-logs)
 - [Design decisions](#design-decisions)
 - [What other layers read](#what-other-layers-read)
 - [Verifying it](#verifying-it)
@@ -89,6 +91,39 @@ A network ACL sits in front of the data subnets as a second barrier:
 
 Everything else is denied by the ACL's implicit final rule.
 
+## Endpoints
+
+Built by the [`vpc-endpoints` module](../../infra/modules/vpc-endpoints/README.md).
+
+| Kind      | Services                                                  | Attached to                                 | Cost               |
+| --------- | --------------------------------------------------------- | ------------------------------------------- | ------------------ |
+| Gateway   | S3, DynamoDB                                              | The private and data route tables           | None               |
+| Interface | ECR, KMS, CloudWatch Logs, Secrets Manager, SQS, SSM, STS | The private subnets, one interface per zone | Per zone, per hour |
+
+The gateway endpoints are why the data tier needs no internet route: a database export to S3 follows a prefix list route that stays on the AWS network.
+
+Staging and production get the full interface set, so a container can start, log and read its secrets with NAT unavailable. Dev keeps three (the two ECR endpoints and Secrets Manager) and sends the rest through NAT. That list is `interface_endpoint_services` in `infra/environments/dev/env.tfvars`.
+
+All interface endpoints share one security group that accepts HTTPS from the VPC range.
+
+## Flow logs
+
+Built by the [`vpc-flow-logs` module](../../infra/modules/vpc-flow-logs/README.md). Every VPC records all traffic, accepted and rejected, to the log group `/meridian/<environment>/network/flow-logs`.
+
+| Environment | Retention |
+| ----------- | --------- |
+| dev         | 30 days   |
+| staging     | 90 days   |
+| production  | 90 days   |
+
+A question such as "what did this address talk to yesterday" is answered with a CloudWatch Logs Insights query on that group:
+
+```
+fields @timestamp, srcAddr, dstAddr, dstPort, action
+| filter srcAddr = "10.30.33.17"
+| sort @timestamp desc
+```
+
 ## Design decisions
 
 **Three tiers, not two.** A two-tier network puts databases next to workloads, where one wrong route gives a database a path out. A separate data tier with its own route table makes "the database cannot reach the internet" a property of the network and not of each security group.
@@ -109,27 +144,32 @@ Everything else is denied by the ACL's implicit final rule.
 
 The `foundation` layer publishes the network to Parameter Store under `/meridian/<environment>/network/`:
 
-| Parameter                 | Type       | Used by                                   |
-| ------------------------- | ---------- | ----------------------------------------- |
-| `vpc-id`                  | String     | Security groups, load balancers, clusters |
-| `vpc-cidr`                | String     | Security group rules for whole-VPC access |
-| `availability-zones`      | StringList | Anything spread across zones              |
-| `public-subnet-ids`       | StringList | Internet-facing load balancers            |
-| `private-subnet-ids`      | StringList | Workloads                                 |
-| `data-subnet-ids`         | StringList | Database and cache subnet groups          |
-| `private-route-table-ids` | StringList | Gateway endpoints                         |
-| `data-route-table-id`     | String     | Gateway endpoints                         |
+| Parameter                 | Type       | Used by                                       |
+| ------------------------- | ---------- | --------------------------------------------- |
+| `vpc-id`                  | String     | Security groups, load balancers, clusters     |
+| `vpc-cidr`                | String     | Security group rules for whole-VPC access     |
+| `availability-zones`      | StringList | Anything spread across zones                  |
+| `public-subnet-ids`       | StringList | Internet-facing load balancers                |
+| `private-subnet-ids`      | StringList | Workloads                                     |
+| `data-subnet-ids`         | StringList | Database and cache subnet groups              |
+| `private-route-table-ids` | StringList | Gateway endpoints                             |
+| `data-route-table-id`     | String     | Gateway endpoints                             |
+| `flow-log-group`          | String     | Queries and alarms on network traffic         |
+| `s3-prefix-list-id`       | String     | Security group rules that allow S3 only       |
+| `dynamodb-prefix-list-id` | String     | Security group rules that allow DynamoDB only |
 
 Lists are in zone order: the first element is zone a.
 
 ## Verifying it
 
-| Check                                                                                          | Where                                               |
-| ---------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| The address plan, and that no route targets the data table                                     | Module tests, `make test`                           |
-| Network resources are named for their environment                                              | Policy `POL-NAME-5`, `make policy`                  |
-| Three zones per tier, data table has only the local route, every private table has a NAT route | `make smoke`, which asks the EC2 API after an apply |
+| Check                                                                                                         | Where                                               |
+| ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| The address plan, and that no route targets the data table                                                    | Module tests, `make test`                           |
+| Network resources are named for their environment                                                             | Policy `POL-NAME-5`, `make policy`                  |
+| Three zones per tier, data table has only local and endpoint routes, every private table has a NAT route      | `make smoke`, which asks the EC2 API after an apply |
+| Gateway endpoints on four route tables, interface endpoints in three zones, an active flow log with retention | `make smoke`                                        |
+| Log groups have a retention period of at least 30 days                                                        | Policies `POL-LOG-1` and `POL-LOG-2`                |
 
 ## What the emulator does not prove
 
-The emulator records routes, network ACLs and gateways and returns them through the API, so the configuration can be checked. It does not route packets through them: a container the emulator starts is on a Docker network, not in these subnets. That traffic from the data tier really is dropped is therefore verified by configuration, not by a connection attempt. A real account would add a reachability test. This is row 6 in [emulator differences](emulator-differences.md).
+The emulator records routes, network ACLs and gateways and returns them through the API, so the configuration can be checked. It does not route packets through them: a container the emulator starts is on a Docker network, not in these subnets. That traffic from the data tier really is dropped is therefore verified by configuration, not by a connection attempt. A real account would add a reachability test. The emulator also does not add the prefix list routes of a gateway endpoint to the route tables, and it does not write flow log records. These are rows 6 to 8 in [emulator differences](emulator-differences.md).
