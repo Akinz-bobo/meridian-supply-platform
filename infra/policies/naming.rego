@@ -73,6 +73,7 @@ deny contains msg if {
 	name := rc.change.after[attribute]
 	is_string(name)
 	not startswith(name, path_prefix)
+	not named_by_aws(name)
 	msg := sprintf("POL-NAME-3: %s is named %q. Paths must start with %q", [rc.address, name, path_prefix])
 }
 
@@ -107,4 +108,12 @@ deny contains msg if {
 		"POL-NAME-5: %s has the Name tag %q. Network resources need a Name tag starting with %q",
 		[rc.address, name, prefix],
 	)
+}
+
+# Some services write to a log group whose name they decide, such as
+# /aws/rds/instance/<identifier>/postgresql. The path cannot follow the
+# standard, so the resource name inside it must.
+named_by_aws(name) if {
+	startswith(name, "/aws/")
+	contains(name, concat("", ["/", prefix]))
 }
