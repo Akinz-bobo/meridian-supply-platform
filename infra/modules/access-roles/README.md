@@ -6,6 +6,7 @@ What a caller needs to know:
 
 - **The pipeline has no stored credentials.** GitHub Actions exchanges a signed token for the deploy role. `deploy_subjects` names exactly which repository and GitHub environment or branch may do so. A wildcard is refused, because it would admit pull requests from forks.
 - **The deploy role cannot escalate.** It can create a role only if the role carries the workload boundary, cannot remove a boundary, and cannot change the boundary, itself, the other access roles or the identity provider.
+- **The deploy role cannot destroy encryption keys** unless `allow_key_deletion` is set, which is meant for a disposable environment that the pipeline tears down.
 - **The deploy role reaches only its own state.** Access to the state bucket is limited to `state_key_prefix`.
 - **People need multi-factor authentication less than an hour old**, and come from `identity_account_id` only.
 - **Operators operate and do not build.** They can restart, stop, redrive, snapshot and read logs, on resources named for the environment.
@@ -71,6 +72,7 @@ module "access_roles" {
 | state\_bucket\_name | Name of the bucket that holds Terraform state. | `string` | n/a | yes |
 | state\_key\_prefix | Prefix of this environment's state in the bucket, without slashes, for example production. The pipeline can read and write only under it. | `string` | n/a | yes |
 | tags | Tags for every resource in the module. Take them from the context module. | `map(string)` | n/a | yes |
+| allow\_key\_deletion | Let the pipeline disable encryption keys and schedule them for deletion. Only for an environment whose data is disposable and which the pipeline tears down. | `bool` | `false` | no |
 | deploy\_services | AWS services the pipeline manages, by IAM prefix. IAM is handled separately and may not be listed. | `set(string)` | <pre>[<br/>  "apigateway",<br/>  "athena",<br/>  "cloudfront",<br/>  "cloudwatch",<br/>  "dynamodb",<br/>  "ec2",<br/>  "ecr",<br/>  "ecs",<br/>  "eks",<br/>  "elasticache",<br/>  "elasticloadbalancing",<br/>  "events",<br/>  "firehose",<br/>  "glue",<br/>  "kinesis",<br/>  "kms",<br/>  "lambda",<br/>  "logs",<br/>  "rds",<br/>  "s3",<br/>  "scheduler",<br/>  "secretsmanager",<br/>  "sns",<br/>  "sqs",<br/>  "ssm",<br/>  "states"<br/>]</pre> | no |
 
 ## Outputs
