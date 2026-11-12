@@ -10,6 +10,9 @@ services:
     container_name: meridian-floci
     ports:
       - '127.0.0.1:${FLOCI_PORT:-4566}:4566'
+      # The data plane of emulated load balancers: every HTTPS listener on
+      # 443 is served here. Published on a high port so nothing needs root.
+      - '127.0.0.1:${FLOCI_HTTPS_PORT:-8443}:443'
     volumes:
       # Lets the emulator start real containers for RDS, ECS, EKS, EC2 and Lambda.
       - /var/run/docker.sock:/var/run/docker.sock

@@ -4,6 +4,7 @@ SHELL := /usr/bin/env bash
 .DEFAULT_GOAL := help
 
 export FLOCI_PORT ?= 4566
+export FLOCI_HTTPS_PORT ?= 8443
 export AWS_ENDPOINT_URL ?= http://localhost:$(FLOCI_PORT)
 export AWS_DEFAULT_REGION ?= eu-west-1
 # The emulator accepts any non-empty credentials. These are not secrets.
