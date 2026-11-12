@@ -20,6 +20,7 @@ variables {
   vpc_id         = "vpc-0123456789abcdef0"
   account_id     = "333333333333"
   log_group_name = "/meridian/prod/network/flow-logs"
+  kms_key_arn    = "arn:aws:kms:eu-west-1:333333333333:key/11111111-2222-3333-4444-555555555555"
 
   permissions_boundary_arn = "arn:aws:iam::333333333333:policy/meridian-prod-workload-boundary"
   tags = {
@@ -89,14 +90,20 @@ run "the_role_cannot_use_a_wildcard_action" {
 run "encrypts_with_the_given_key" {
   command = plan
 
-  variables {
-    kms_key_arn = "arn:aws:kms:eu-west-1:333333333333:key/11111111-2222-3333-4444-555555555555"
-  }
-
   assert {
     condition     = aws_cloudwatch_log_group.this.kms_key_id == "arn:aws:kms:eu-west-1:333333333333:key/11111111-2222-3333-4444-555555555555"
     error_message = "The log group must use the key it was given."
   }
+}
+
+run "refuses_to_log_without_a_customer_managed_key" {
+  command = plan
+
+  variables {
+    kms_key_arn = ""
+  }
+
+  expect_failures = [var.kms_key_arn]
 }
 
 run "rejects_retention_shorter_than_thirty_days" {
