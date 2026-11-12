@@ -60,3 +60,37 @@ variable "log_retention_days" {
   type        = number
   default     = 90
 }
+
+variable "identity_account_id" {
+  description = "Account where people sign in before assuming a role in an environment."
+  type        = string
+  default     = "444444444444"
+}
+
+variable "github_repository" {
+  description = "Repository whose workflows may deploy, as owner/name."
+  type        = string
+  default     = "Akinz-bobo/meridian-supply-platform"
+}
+
+variable "github_environment" {
+  description = "GitHub deployment environment whose jobs may assume this environment's deploy role."
+  type        = string
+}
+
+variable "state_bucket_name" {
+  description = "Bucket that holds Terraform state. The same value as in backend.hcl, which Terraform cannot read from configuration."
+  type        = string
+  default     = "meridian-shared-tfstate-444444444444-eu-west-1"
+}
+
+variable "state_account_id" {
+  description = "Account that owns the state bucket."
+  type        = string
+  default     = "444444444444"
+}
+
+variable "state_key_prefix" {
+  description = "Prefix of this environment's state in the bucket: the name of the environment's directory."
+  type        = string
+}
