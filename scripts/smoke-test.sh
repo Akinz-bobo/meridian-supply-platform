@@ -79,11 +79,32 @@ data_table='.RouteTables[]? | select(any(.Tags[]?; .Key == "Tier" and .Value == 
 check 'the data route table is associated with three subnets' \
   jq -e "[$data_table | .Associations[]?] | length == 3" <<<"$routes"
 check 'the data tier has no route out of the VPC' \
-  jq -e "[$data_table | .Routes[]? | select(.GatewayId != \"local\")] | length == 0" <<<"$routes"
+  jq -e "[$data_table | .Routes[]? | (.GatewayId // \"\") as \$g
+    | select(\$g != \"local\" and (\$g | startswith(\"vpce-\") | not))] | length == 0" <<<"$routes"
 check 'every private route table leaves through a NAT gateway' jq -e \
   '[.RouteTables[]? | select(any(.Tags[]?; .Key == "Tier" and .Value == "private"))
     | any(.Routes[]?; .DestinationCidrBlock == "0.0.0.0/0" and .NatGatewayId != null)] | length == 3 and all' \
   <<<"$routes"
+
+endpoints="$(as_account "$account" aws ec2 describe-vpc-endpoints --filters "Name=vpc-id,Values=$vpc_id" \
+  --output json 2>/dev/null || echo '{}')"
+for service in s3 dynamodb; do
+  check "a gateway endpoint for $service is attached to the private and data route tables" jq -e --arg s "$service" \
+    '[.VpcEndpoints[]? | select(.VpcEndpointType == "Gateway" and (.ServiceName | endswith("." + $s)))
+      | .RouteTableIds | length] == [4]' <<<"$endpoints"
+done
+check 'every interface endpoint has private DNS and an interface in three zones' jq -e \
+  '[.VpcEndpoints[]? | select(.VpcEndpointType == "Interface")] as $i
+    | ($i | length) > 0 and ($i | all(.PrivateDnsEnabled and (.SubnetIds | length) == 3))' <<<"$endpoints"
+
+flow_logs="$(as_account "$account" aws ec2 describe-flow-logs --filter "Name=resource-id,Values=$vpc_id" \
+  --output json 2>/dev/null || echo '{}')"
+check 'a flow log records all traffic in the VPC' \
+  jq -e '[.FlowLogs[]? | select(.TrafficType == "ALL" and .FlowLogStatus == "ACTIVE")] | length == 1' <<<"$flow_logs"
+log_group="/meridian/$environment/network/flow-logs"
+check "the flow log group $log_group has a retention period" jq -e --arg g "$log_group" \
+  '[.logGroups[]? | select(.logGroupName == $g) | .retentionInDays] | length == 1 and all(. >= 30)' \
+  <<<"$(as_account "$account" aws logs describe-log-groups --log-group-name-prefix "$log_group" --output json 2>/dev/null || echo '{}')"
 
 while IFS= read -r layer; do
   check "state for the $layer layer is in the shared bucket" \
