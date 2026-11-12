@@ -110,3 +110,22 @@ test_allows_a_secret_under_its_service_path if {
 	rc := fixtures.create("aws_secretsmanager_secret", "s", {"name": "/meridian/prod/catalog/secrets/partner-api-token"})
 	count(naming.deny) == 0 with input as fixtures.plan("prod", [rc])
 }
+
+test_allows_a_log_group_named_by_an_aws_service_for_our_resource if {
+	rc := fixtures.create("aws_cloudwatch_log_group", "g", {"name": "/aws/rds/instance/meridian-prod-catalog-db/postgresql"})
+	count(naming.deny) == 0 with input as fixtures.plan("prod", [rc])
+}
+
+test_denies_an_aws_log_group_for_another_environments_resource if {
+	rc := fixtures.create("aws_cloudwatch_log_group", "g", {"name": "/aws/rds/instance/meridian-dev-catalog-db/postgresql"})
+	messages := naming.deny with input as fixtures.plan("prod", [rc])
+	some msg in messages
+	contains(msg, "POL-NAME-3")
+}
+
+test_denies_an_aws_log_group_for_an_unnamed_resource if {
+	rc := fixtures.create("aws_cloudwatch_log_group", "g", {"name": "/aws/lambda/my-function"})
+	messages := naming.deny with input as fixtures.plan("prod", [rc])
+	some msg in messages
+	contains(msg, "POL-NAME-3")
+}
