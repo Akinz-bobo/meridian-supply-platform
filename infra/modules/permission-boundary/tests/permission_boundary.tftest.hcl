@@ -115,10 +115,50 @@ run "denies_weakening_keys_and_audit_logs" {
       ["kms:ScheduleKeyDeletion", "kms:PutKeyPolicy", "cloudtrail:StopLogging", "logs:DeleteLogGroup"],
       one([
         for statement in jsondecode(data.aws_iam_policy_document.this.json).Statement : statement
-        if statement.Sid == "NeverWeakenKeysOrAuditing"
+        if statement.Sid == "NeverWeakenKeysVersioningOrAuditing"
       ]).Action,
     )) == 0
     error_message = "Key deletion, key policy changes, stopping the trail and deleting logs must all be denied."
+  }
+}
+
+run "a_workload_cannot_destroy_old_object_versions" {
+  command = plan
+
+  assert {
+    condition = alltrue(flatten([
+      for statement in jsondecode(data.aws_iam_policy_document.this.json).Statement : [
+        for action in flatten([try(statement.Action, [])]) :
+        !contains(["s3:DeleteObjectVersion", "s3:DeleteObject*", "s3:PutBucketVersioning", "s3:*"], action)
+      ]
+      if statement.Effect == "Allow"
+    ]))
+    error_message = "No allow statement may let a workload delete object versions or turn versioning off."
+  }
+
+  assert {
+    condition = length(setsubtract(
+      ["s3:DeleteObjectVersion", "s3:PutBucketVersioning", "s3:PutLifecycleConfiguration"],
+      one([
+        for statement in jsondecode(data.aws_iam_policy_document.this.json).Statement : statement
+        if statement.Sid == "NeverWeakenKeysVersioningOrAuditing"
+      ]).Action,
+    )) == 0
+    error_message = "Deleting versions, changing versioning and changing lifecycle rules must be denied outright."
+  }
+}
+
+run "object_actions_are_listed_exactly" {
+  command = plan
+
+  assert {
+    condition = alltrue([
+      for action in one([
+        for statement in jsondecode(data.aws_iam_policy_document.this.json).Statement : statement
+        if statement.Sid == "ObjectStorageOfThisEnvironment"
+      ]).Action : !strcontains(action, "*")
+    ])
+    error_message = "S3 actions in the boundary must be exact. A wildcard such as s3:PutObject* admits actions nobody meant to allow."
   }
 }
 
