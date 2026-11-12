@@ -50,7 +50,7 @@ flowchart LR
 | `messaging` | `alias/meridian-<env>-messaging` | `/meridian/<env>/security/kms/messaging-key-arn` |
 | `secrets`   | `alias/meridian-<env>-secrets`   | `/meridian/<env>/security/kms/secrets-key-arn`   |
 
-The Terraform state bucket has a fifth key of its own in the shared account, created by the bootstrap stack.
+Two further keys exist outside the four. The Terraform state bucket has its own in the shared account, created by the bootstrap stack. The backup vault has its own, `alias/meridian-<env>-backup`, created by the `data` layer, so that a role able to decrypt a store cannot by that fact read a backup of it.
 
 ## Which key for which resource
 
