@@ -79,12 +79,12 @@ The key policy has at most two statements.
 | Account manages access through IAM    | The account root   | Makes IAM policies effective for the key. Without it, only the key policy could grant access, and every new role would mean editing the key  |
 | Services use the key for this account | Named AWS services | Only on keys a service must use directly. Conditioned on `aws:SourceAccount`, so the service cannot use the key on behalf of another account |
 
-| Key         | Services named in the key policy | Reason                                                             |
-| ----------- | -------------------------------- | ------------------------------------------------------------------ |
-| `data`      | None                             | RDS, DynamoDB and S3 use the key through grants made by the caller |
-| `logs`      | CloudWatch Logs                  | Logs encrypts with the key itself when a log event arrives         |
-| `messaging` | EventBridge, S3, SNS             | Each delivers into encrypted queues and must generate a data key   |
-| `secrets`   | None                             | Secrets Manager uses the caller's permission                       |
+| Key         | Services named in the key policy | Reason                                                                     |
+| ----------- | -------------------------------- | -------------------------------------------------------------------------- |
+| `data`      | None                             | RDS, DynamoDB and S3 use the key through grants made by the caller         |
+| `logs`      | CloudWatch Logs                  | Logs encrypts with the key itself when a log event arrives                 |
+| `messaging` | CloudWatch, EventBridge, S3, SNS | Each delivers into encrypted queues or topics and must generate a data key |
+| `secrets`   | None                             | Secrets Manager uses the caller's permission                               |
 
 The account root statement allows `kms:*`. That does not give every principal in the account access: it means a principal has access only if an IAM policy grants it. Which roles get `kms:Decrypt` on which key is part of the IAM foundations.
 

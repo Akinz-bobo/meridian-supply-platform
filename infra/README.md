@@ -123,6 +123,7 @@ This creates a skeleton that meets the [module standards](../docs/architecture/m
 | [event-bus](modules/event-bus/README.md)                       | The event bus with its archive, event log and a publish policy per producer           |
 | [event-consumer-queue](modules/event-consumer-queue/README.md) | A consumer's queue, dead-letter queue, rule on the bus and alarm                      |
 | [kms-key](modules/kms-key/README.md)                           | A rotating encryption key with an alias and a key policy that delegates to IAM        |
+| [notification-topic](modules/notification-topic/README.md)     | An encrypted SNS topic that admits named services and refuses plain transport         |
 | [permission-boundary](modules/permission-boundary/README.md)   | The limit on what any workload role in an environment can be granted                  |
 | [postgres-database](modules/postgres-database/README.md)       | PostgreSQL on RDS with managed credentials, enforced TLS, backups and logs            |
 | [redis-cache](modules/redis-cache/README.md)                   | A Valkey cache with encryption, IAM-authenticated users and automatic failover        |
