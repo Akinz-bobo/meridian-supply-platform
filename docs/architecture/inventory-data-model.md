@@ -48,6 +48,15 @@ flowchart LR
 
 Both are defined in `infra/environments/<env>/data/tables.tf` with the [`dynamodb-table` module](../../infra/modules/dynamodb-table/README.md).
 
+The inventory service is given a different policy for each, from the module's outputs:
+
+| Table           | Policy               | Can                                 | Cannot                                                                             |
+| --------------- | -------------------- | ----------------------------------- | ---------------------------------------------------------------------------------- |
+| Movement ledger | `append_policy_json` | Add and read movements              | Update or delete one. The record cannot be rewritten by the service that writes it |
+| Stock levels    | `write_policy_json`  | Read, add, update and delete levels | Change or delete the table                                                         |
+
+A movement's transaction contains a put to the ledger and an update to a level, so it needs exactly these two policies and no more.
+
 ## The movement ledger
 
 Two kinds of item share the table.
