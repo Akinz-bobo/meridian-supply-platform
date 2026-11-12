@@ -55,7 +55,7 @@ flowchart TB
 | Module apply tests       | Once                                                   | `make test-emulator`. These tests use an account of their own and no environment                                        |
 | Plan comment             | Once, after the rehearsals, whether they passed or not | Joins the three plan reports into the single comment on the pull request                                                |
 
-**Why in parallel.** The first version did all three environments one after another in one job. When the data layer arrived that took more than twenty minutes, and every store added made it longer. A check that slow gets worked around. The environments are independent, so each now has its own job, and a pull request waits for the slowest one and not for the sum.
+**Why in parallel.** The first version did all three environments one after another in one job. It took about seven minutes with the foundation layer alone and sixteen once the data layer had a bucket and two tables, and every store added made it longer. A check that slow gets worked around. The environments are independent, so each now has its own job, and a pull request waits for the slowest one and not for the sum.
 
 **One comment, three jobs.** Each rehearsal uploads its plan report. The comment job joins them, in promotion order, and updates the one plan comment. If a job fails before it can plan, its environment appears in the table as having no report, so an environment cannot quietly drop out.
 
