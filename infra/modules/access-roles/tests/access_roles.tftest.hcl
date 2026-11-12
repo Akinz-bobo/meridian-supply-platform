@@ -60,6 +60,45 @@ run "the_pipeline_cannot_create_a_role_without_the_boundary" {
   }
 }
 
+run "a_service_role_may_carry_an_approved_aws_boundary" {
+  command = plan
+
+  variables {
+    service_boundary_arns = ["arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup"]
+  }
+
+  assert {
+    condition = toset(one([
+      for statement in jsondecode(data.aws_iam_policy_document.deploy.json).Statement : statement
+      if statement.Sid == "NewRolesMustCarryTheBoundary"
+      ]).Condition.StringNotEquals["iam:PermissionsBoundary"]) == toset([
+      "arn:aws:iam::333333333333:policy/meridian-prod-workload-boundary",
+      "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup",
+    ])
+    error_message = "The approved boundaries are the workload boundary and the listed service boundaries, and nothing else."
+  }
+}
+
+run "rejects_a_customer_managed_policy_as_a_service_boundary" {
+  command = plan
+
+  variables {
+    service_boundary_arns = ["arn:aws:iam::333333333333:policy/anything"]
+  }
+
+  expect_failures = [var.service_boundary_arns]
+}
+
+run "rejects_administrator_access_as_a_service_boundary" {
+  command = plan
+
+  variables {
+    service_boundary_arns = ["arn:aws:iam::aws:policy/AdministratorAccess"]
+  }
+
+  expect_failures = [var.service_boundary_arns]
+}
+
 run "the_pipeline_cannot_change_its_own_permissions" {
   command = plan
 

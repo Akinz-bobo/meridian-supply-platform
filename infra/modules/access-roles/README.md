@@ -74,6 +74,7 @@ module "access_roles" {
 | tags | Tags for every resource in the module. Take them from the context module. | `map(string)` | n/a | yes |
 | allow\_key\_deletion | Let the pipeline disable encryption keys and schedule them for deletion. Only for an environment whose data is disposable and which the pipeline tears down. | `bool` | `false` | no |
 | deploy\_services | AWS services the pipeline manages, by IAM prefix. IAM is handled separately and may not be listed. | `set(string)` | <pre>[<br/>  "apigateway",<br/>  "athena",<br/>  "cloudfront",<br/>  "cloudwatch",<br/>  "dynamodb",<br/>  "ec2",<br/>  "ecr",<br/>  "ecs",<br/>  "eks",<br/>  "elasticache",<br/>  "elasticloadbalancing",<br/>  "events",<br/>  "firehose",<br/>  "glue",<br/>  "kinesis",<br/>  "kms",<br/>  "lambda",<br/>  "logs",<br/>  "rds",<br/>  "s3",<br/>  "scheduler",<br/>  "secretsmanager",<br/>  "sns",<br/>  "sqs",<br/>  "ssm",<br/>  "states"<br/>]</pre> | no |
+| service\_boundary\_arns | Further boundaries the pipeline may create roles with, for AWS service roles whose work falls outside the workload boundary. Each must be an AWS managed policy written for one service, such as the backup service's own policy. | `set(string)` | `[]` | no |
 
 ## Outputs
 
