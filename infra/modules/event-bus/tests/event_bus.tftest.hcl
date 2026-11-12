@@ -156,3 +156,21 @@ run "rejects_a_name_too_long_for_an_archive" {
 
   expect_failures = [var.name]
 }
+
+run "the_log_delivery_policy_can_be_left_to_the_account" {
+  command = plan
+
+  variables {
+    manage_log_resource_policy = false
+  }
+
+  assert {
+    condition     = length(aws_cloudwatch_log_resource_policy.events) == 0
+    error_message = "With manage_log_resource_policy off, no resource policy is created."
+  }
+
+  assert {
+    condition     = aws_cloudwatch_event_target.log.target_id == "log"
+    error_message = "The rule still targets the event log. Only the policy is left to the account."
+  }
+}

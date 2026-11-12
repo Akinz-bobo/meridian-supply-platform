@@ -91,3 +91,9 @@ variable "log_retention_days" {
     error_message = "Retention must be a value CloudWatch accepts and at least 30 days: 30, 60, 90, 120, 150, 180, 365, 400, 545 or 731."
   }
 }
+
+variable "manage_log_resource_policy" {
+  description = "Create the CloudWatch Logs resource policy that lets EventBridge write to the event log. Turn off when the account already has a policy covering /aws/events/ log groups, or where the target cannot manage one."
+  type        = bool
+  default     = true
+}
