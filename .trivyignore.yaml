@@ -4,11 +4,4 @@
 # why the finding does not apply or why the risk is accepted. An entry with
 # no reason is not accepted in review.
 
-misconfigurations:
-  - id: AVD-AWS-0178
-    paths:
-      - 'modules/vpc/**'
-    statement: >-
-      VPC flow logs are delivered by issue 17, the next change to this module.
-      This entry expires so the finding returns if that work slips.
-    expired_at: 2026-11-30
+misconfigurations: []
