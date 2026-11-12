@@ -24,3 +24,13 @@ misconfigurations:
       cannot create a role without the workload boundary and cannot change
       its own permissions. The same exception is recorded for the policy
       check POL-IAM-2 in infra/policies/data/exceptions.yaml.
+  - id: AVD-AWS-0053
+    paths:
+      - 'modules/load-balancer/main.tf'
+    statement: >-
+      Accepted. The load balancer is the environment's public entry point and
+      is meant to be reachable from the internet. It serves TLS only, refuses
+      any request that matches no rule, and is the only resource whose
+      security group accepts traffic from outside the VPC, which the policy
+      check POL-SG-1 holds every other security group to. The module can also
+      build an internal load balancer with the `internal` input.
