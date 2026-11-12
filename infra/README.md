@@ -13,7 +13,8 @@ infra/
     _shared/         provider, version and variable files, defined once
     dev/
       env.tfvars     the values that make this environment different
-      foundation/    one state layer
+      foundation/    state layer: network, keys, identity
+      data/          state layer: stores
     staging/
     production/
 ```
