@@ -123,6 +123,7 @@ jobs:
             echo "::endgroup::"
             make smoke ENV="$environment"
             make state-audit ENV="$environment"
+            make data-check ENV="$environment"
           done
 
       - name: Run module apply tests
@@ -194,7 +195,8 @@ jobs:
             echo "::endgroup::"
             make smoke ENV="$environment"
             make state-audit ENV="$environment"
-            echo "| \`$environment\` | applied, smoke test passed, no secrets in state |" >> "$GITHUB_STEP_SUMMARY"
+            make data-check ENV="$environment"
+            echo "| \`$environment\` | applied, smoke test and data model check passed, no secrets in state |" >> "$GITHUB_STEP_SUMMARY"
           done
 
       - name: Show emulator logs on failure
