@@ -1,0 +1,44 @@
+name: Set up Terraform
+description: >-
+  Installs the pinned Terraform, restores the provider cache and, when asked,
+  the pinned analysis tools. Shared by every job that runs Terraform, so the
+  versions cannot drift between jobs.
+
+inputs:
+  tools:
+    description: Analysis tools to install with scripts/install-tools.sh, separated by spaces. Empty installs none.
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Read the pinned Terraform version
+      id: version
+      shell: bash
+      run: echo "terraform=$(cat .terraform-version)" >> "$GITHUB_OUTPUT"
+
+    - uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ steps.version.outputs.terraform }}
+        terraform_wrapper: false
+
+    - name: Cache providers
+      uses: actions/cache@v4
+      with:
+        path: ~/.terraform.d/plugin-cache
+        key: terraform-providers-${{ hashFiles('infra/**/.terraform.lock.hcl') }}
+
+    - name: Use the provider cache
+      shell: bash
+      run: |
+        mkdir -p ~/.terraform.d/plugin-cache
+        echo "TF_PLUGIN_CACHE_DIR=$HOME/.terraform.d/plugin-cache" >> "$GITHUB_ENV"
+
+    - name: Install the pinned tools
+      if: inputs.tools != ''
+      shell: bash
+      run: |
+        # shellcheck disable=SC2086 # the input is a list of tool names
+        BIN_DIR="$HOME/.local/bin" ./scripts/install-tools.sh ${{ inputs.tools }}
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
