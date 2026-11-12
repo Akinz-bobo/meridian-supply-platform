@@ -156,7 +156,7 @@ The deploy role and its trust policy are built by the [`access-roles` module](..
 
 Staging and production stores are protected against deletion: tables and databases refuse to be deleted, a database takes a final snapshot, a bucket refuses to be emptied. `make destroy-all` therefore fails there, which is the protection doing its job.
 
-The rehearsal still has to prove that everything can be destroyed, so it uses `make teardown`. That is two steps: an apply with the environment marked disposable, which lifts the protections as ordinary in-place changes, and then the destroy. It is the same procedure a real environment would be decommissioned with, where the first step is a reviewed pull request and not a flag.
+The rehearsal still has to prove that everything can be destroyed, so it uses `make teardown`. That is two steps: an apply with the environment marked disposable, which lifts the protections as ordinary in-place changes, and then the destroy. The override is passed as `-var disposable=true` after the variable file. An environment variable would not work: staging and production state `disposable = false` in their `env.tfvars`, and a value in a variable file takes precedence over `TF_VAR_disposable`. It is the same procedure a real environment would be decommissioned with, where the first step is a reviewed pull request and not a flag.
 
 The first run of the pipeline with protected tables failed at this point with `DeleteTable ... ValidationException`. That failure is what showed the rehearsal needed the first step.
 
