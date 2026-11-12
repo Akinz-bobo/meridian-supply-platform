@@ -88,6 +88,7 @@ See [local development](docs/guides/local-development.md).
 | [Restore runbook](docs/runbooks/restore.md)                                 | How to get data back for each kind of store, and what has and has not been tested                     |
 | [Data layer review](docs/architecture/security/data-review.md)              | The review of milestone 3: seven findings, and six problems found by running things                   |
 | [Messaging](docs/architecture/messaging.md)                                 | The event bus, the contract every event follows, and who may publish what                             |
+| [Dead-letter queue runbook](docs/runbooks/dead-letter-queue.md)             | What to do when a message fails five times: inspect, fix, redrive                                     |
 
 Changes are summarised in the [changelog](CHANGELOG.md).
 

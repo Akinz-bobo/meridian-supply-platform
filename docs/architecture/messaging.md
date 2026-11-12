@@ -12,6 +12,7 @@ It covers the bus, the contract, consumer queues, notification topics and the mo
 - [Topics](#topics)
 - [The movement stream](#the-movement-stream)
 - [The messaging layer](#the-messaging-layer)
+- [Checking the flow](#checking-the-flow)
 - [How it is enforced](#how-it-is-enforced)
 - [What the emulator does not prove](#what-the-emulator-does-not-prove)
 
@@ -165,6 +166,24 @@ A coarser key, one for everything, would put all traffic on one shard. A finer o
 | `archive-arn`         | Starting a replay                           |
 | `log-group-name`      | Queries during an incident                  |
 
+## Checking the flow
+
+`make event-check ENV=<env>` runs [`scripts/event-check.sh`](../../scripts/event-check.sh) against an applied environment. It publishes events and stream records marked as its own and follows them.
+
+| Check                                                                                                           | What it shows                                                  |
+| --------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| An event that follows the contract is accepted, and reaches both queues interested in it                        | Fan-out: one publish, two independent consumers                |
+| It does not reach a queue for another event type, and an event from outside the platform reaches no consumer    | Rules match what they should and nothing else                  |
+| The body received is the envelope exactly                                                                       | The consumer gets what the producer sent                       |
+| A message received five times without being deleted leaves the queue and is in the dead-letter queue, unchanged | Failures are kept, not dropped or retried for ever             |
+| The metric the alarm watches shows it                                                                           | The alarm has something to fire on                             |
+| A redrive returns it to the queue, and the dead-letter queue is empty                                           | The [runbook](../runbooks/dead-letter-queue.md) works          |
+| An alarm that changes state notifies the alarms topic, naming the alarm and the state                           | Someone would be told                                          |
+| An event meant for people reaches the notifications topic, and an ordinary one does not                         | The notification rule                                          |
+| Twenty records in two warehouses are read back in order per warehouse, and a second reader gets the same        | The stream keeps order per partition key and can be read again |
+
+It runs in the pipeline after every apply, in every environment. Before publishing, each test event is passed through the contract validator, so the check also fails if the envelope and the examples drift apart.
+
 ## How it is enforced
 
 | Rule                                                         | Where                                                                                        |
@@ -178,7 +197,9 @@ A coarser key, one for everything, would put all traffic on one shard. A finer o
 ## What the emulator does not prove
 
 - **Delivery to the event log.** The emulator stores a rule that targets a log group and delivers nothing to it. Difference 23.
-- **The `events:source` condition.** IAM is not evaluated, so a producer publishing under another's source is not refused here.
-- **Encryption of the bus.** The key is accepted and not returned. Difference 24.
+- **IAM and resource policies.** A producer publishing under another's source, a rule other than a queue's own delivering to it, a consumer writing to a stream: none is refused here. They are tested on the rendered policies.
+- **Encryption.** Keys are accepted. The bus does not return its key (difference 24), and no key policy is evaluated, which is why the missing CloudWatch entry in the messaging key's policy could only be found by reading.
+- **Alarm evaluation.** The metric is recorded and the notification is delivered when the state is set by hand. The emulator never changes the state itself. Difference 27.
+- **Order across shards, and behaviour under load.** An on-demand stream has one shard here.
 
-The archive does behave: it counted an event that matched its pattern and ignored one that did not.
+What it does do is listed as difference 28: rules deliver with the detail extracted, queues dead-letter and redrive, topics deliver, and the stream keeps order per key.

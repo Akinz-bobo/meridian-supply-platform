@@ -10,6 +10,7 @@ Notable changes, newest first. The format follows [Keep a Changelog](https://kee
 - Consumer queues: a tested `event-consumer-queue` module (queue, dead-letter queue, rule, alarm and a consume policy), and the first three queues in every environment.
 - Topics: a tested `notification-topic` module, an alarms topic that every dead-letter queue alarm notifies, and a notifications topic fed by a rule for the events meant for people.
 - Movement stream: a tested `event-stream` module with separate produce and consume policies, and the Kinesis stream for warehouse movements in every environment.
+- Event flow check: `make event-check` publishes events and follows them through fan-out, dead-lettering, redrive, alarm notification, the notifications topic and stream ordering, in the pipeline. A runbook for a message in a dead-letter queue.
 
 ## [0.4.0] - 2026-11-12
 
