@@ -79,6 +79,34 @@ run "the_pipeline_cannot_change_its_own_permissions" {
   }
 }
 
+run "the_pipeline_cannot_destroy_a_key_by_default" {
+  command = plan
+
+  assert {
+    condition = toset(one([
+      for statement in jsondecode(data.aws_iam_policy_document.deploy.json).Statement : statement
+      if statement.Sid == "KeysAreNotThePipelinesToDestroy"
+    ]).Action) == toset(["kms:DisableKey", "kms:ScheduleKeyDeletion"])
+    error_message = "Disabling a key and scheduling its deletion must be denied to the pipeline."
+  }
+}
+
+run "a_disposable_environment_can_be_torn_down" {
+  command = plan
+
+  variables {
+    allow_key_deletion = true
+  }
+
+  assert {
+    condition = length([
+      for statement in jsondecode(data.aws_iam_policy_document.deploy.json).Statement : statement
+      if statement.Sid == "KeysAreNotThePipelinesToDestroy"
+    ]) == 0
+    error_message = "With allow_key_deletion the deny statement must be absent."
+  }
+}
+
 run "the_pipeline_manages_iam_only_under_the_platform_prefix" {
   command = plan
 
