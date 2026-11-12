@@ -19,9 +19,24 @@ locals {
 }
 
 data "aws_iam_policy_document" "this" {
+  # Exact actions, on purpose. s3:PutObject* would include PutObjectAcl,
+  # and s3:DeleteObject* would include DeleteObjectVersion, which lets a
+  # workload destroy the old versions that bucket versioning exists to keep.
   statement {
-    sid     = "ObjectStorageOfThisEnvironment"
-    actions = ["s3:GetObject*", "s3:PutObject*", "s3:DeleteObject*", "s3:ListBucket*", "s3:GetBucketLocation", "s3:AbortMultipartUpload"]
+    sid = "ObjectStorageOfThisEnvironment"
+    actions = [
+      "s3:AbortMultipartUpload",
+      "s3:DeleteObject",
+      "s3:GetBucketLocation",
+      "s3:GetObject",
+      "s3:GetObjectTagging",
+      "s3:GetObjectVersion",
+      "s3:ListBucket",
+      "s3:ListBucketMultipartUploads",
+      "s3:ListMultipartUploadParts",
+      "s3:PutObject",
+      "s3:PutObjectTagging",
+    ]
     resources = [
       "${local.arn}:s3:::${local.rp}*",
     ]
@@ -169,9 +184,12 @@ data "aws_iam_policy_document" "this" {
   }
 
   statement {
-    sid    = "NeverWeakenKeysOrAuditing"
+    sid    = "NeverWeakenKeysVersioningOrAuditing"
     effect = "Deny"
     actions = [
+      "s3:DeleteObjectVersion",
+      "s3:PutBucketVersioning",
+      "s3:PutLifecycleConfiguration",
       "kms:CreateGrant",
       "kms:DisableKey",
       "kms:PutKeyPolicy",
