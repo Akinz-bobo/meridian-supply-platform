@@ -77,11 +77,10 @@ jobs:
       - name: Apply the base branch
         run: |
           git worktree add --detach "$RUNNER_TEMP/base" "origin/${{ github.base_ref }}"
-          for layer in $("$RUNNER_TEMP/base/scripts/layers.sh" "$ENVIRONMENT"); do
-            echo "::group::base: apply $ENVIRONMENT/$layer"
-            make -C "$RUNNER_TEMP/base" apply ENV="$ENVIRONMENT" LAYER="$layer"
-            echo "::endgroup::"
-          done
+          # apply-all, and not a loop over layers, so that the base branch's
+          # own steps between layers run: its images are pushed before its
+          # services are deployed.
+          make -C "$RUNNER_TEMP/base" apply-all ENV="$ENVIRONMENT"
 
       - name: Plan the pull request and check policies
         id: report
@@ -111,7 +110,6 @@ jobs:
           echo "::group::apply $ENVIRONMENT"
           make apply-all ENV="$ENVIRONMENT"
           echo "::endgroup::"
-          make image ENV="$ENVIRONMENT" SERVICE=sample
           make smoke ENV="$ENVIRONMENT"
           make state-audit ENV="$ENVIRONMENT"
           make data-check ENV="$ENVIRONMENT"
@@ -218,7 +216,6 @@ jobs:
             echo "::group::apply $environment"
             make apply-all ENV="$environment"
             echo "::endgroup::"
-            make image ENV="$environment" SERVICE=sample
             make smoke ENV="$environment"
             make state-audit ENV="$environment"
             make data-check ENV="$environment"
