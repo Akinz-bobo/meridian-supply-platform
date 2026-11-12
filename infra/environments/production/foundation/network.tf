@@ -51,6 +51,8 @@ module "vpc_flow_logs" {
   log_group_name    = "/${var.project}/${var.environment}/network/flow-logs"
   retention_in_days = var.log_retention_days
   kms_key_arn       = module.kms_key["logs"].key_arn
+
+  permissions_boundary_arn = module.permission_boundary.policy_arn
 }
 
 # One security group per tier. Workload and data store modules attach these
