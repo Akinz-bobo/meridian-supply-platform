@@ -51,13 +51,13 @@ A resource type counts as taggable if its planned values include `tags_all`, so 
 
 ### Naming
 
-| Rule       | Requires                                                             | Reason                                                                   |
-| ---------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| POL-NAME-1 | Names start with `<project>-<environment>-`                          | A name says where a resource lives. IAM policies can be scoped by prefix |
-| POL-NAME-2 | Names are lower case letters, digits and single hyphens              | Valid in every AWS service, including S3 and DNS                         |
-| POL-NAME-3 | Parameter and log group paths start with `/<project>/<environment>/` | Access is granted by path                                                |
-| POL-NAME-4 | Key aliases start with `alias/<project>-<environment>-`              | Same as POL-NAME-1                                                       |
-| POL-NAME-5 | Network resources carry a `Name` tag starting with the same prefix   | They have no name attribute. The tag is what the console shows           |
+| Rule       | Requires                                                                     | Reason                                                                   |
+| ---------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| POL-NAME-1 | Names start with `<project>-<environment>-`                                  | A name says where a resource lives. IAM policies can be scoped by prefix |
+| POL-NAME-2 | Names are lower case letters, digits and single hyphens                      | Valid in every AWS service, including S3 and DNS                         |
+| POL-NAME-3 | Parameter, secret and log group paths start with `/<project>/<environment>/` | Access is granted by path                                                |
+| POL-NAME-4 | Key aliases start with `alias/<project>-<environment>-`                      | Same as POL-NAME-1                                                       |
+| POL-NAME-5 | Network resources carry a `Name` tag starting with the same prefix           | They have no name attribute. The tag is what the console shows           |
 
 The standard itself is in [environments, naming and tagging](../architecture/environments.md#naming-standard). The resource types covered are listed in [`naming.rego`](../../infra/policies/naming.rego). A type is added there when the first module that creates it lands.
 
@@ -109,6 +109,16 @@ POL-SG-1 reads all three ways Terraform can express a rule: the per-rule resourc
 | --------- | ------------------------------------- | ------------------------------------------------------------------------------------------- |
 | POL-KMS-1 | Every key rotates                     | Limits how much data one version of key material protects                                   |
 | POL-KMS-2 | A deletion window of at least 14 days | Deleting a key destroys access to everything it encrypted. The window is the time to notice |
+
+### Secrets
+
+| Rule         | Rejects                                                                     | Reason                                                                            |
+| ------------ | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| POL-SECRET-1 | A secret version whose value is given in `secret_string` or `secret_binary` | Those arguments are written to state and to plan files. `secret_string_wo` is not |
+| POL-SECRET-2 | A `SecureString` parameter whose value is given in `value`                  | The same, for Parameter Store                                                     |
+| POL-SECRET-3 | A secret with a recovery window under 7 days                                | A mistaken delete must be reversible                                              |
+
+A value that is unknown until apply is rejected as well: it will be stored once it is known. The convention behind these rules is in [secrets and configuration](../architecture/secrets-and-configuration.md).
 
 ### Logging
 

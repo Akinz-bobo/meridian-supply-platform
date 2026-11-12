@@ -135,7 +135,7 @@ Plan tests are the baseline. They run in a second or two with no network, so the
 
 Test names are sentences describing behaviour: `refuses_to_be_destroyed_with_state_in_it_by_default`, not `test_force_destroy`.
 
-Apply tests are added where ordering or integration is the risk, which mostly means modules with several interdependent resources.
+Apply tests are added where ordering or integration is the risk, which mostly means modules with several interdependent resources. They live in `tests-emulator/`, use an account of their own so they cannot touch an environment, and run with `make test-emulator` and in the pipeline. Plan tests stay in `tests/` so that `make test` never needs the emulator.
 
 The whole environment being applied, smoke tested and destroyed in the [pipeline](../guides/pipeline.md) is the integration test for how modules fit together.
 
