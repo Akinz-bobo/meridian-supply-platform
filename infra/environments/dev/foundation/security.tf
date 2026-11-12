@@ -14,8 +14,9 @@ locals {
     messaging = {
       description = "Encrypts queues, topics and streams in the ${var.environment} environment."
       # Services that deliver into an encrypted queue or topic need to
-      # generate data keys: SNS to SQS, EventBridge to SQS, S3 notifications.
-      services = ["events.amazonaws.com", "s3.amazonaws.com", "sns.amazonaws.com"]
+      # generate data keys: SNS to SQS, EventBridge to SQS and SNS, S3
+      # notifications, and CloudWatch alarms to SNS.
+      services = ["cloudwatch.amazonaws.com", "events.amazonaws.com", "s3.amazonaws.com", "sns.amazonaws.com"]
     }
     secrets = {
       description = "Encrypts secrets and secure parameters in the ${var.environment} environment."
