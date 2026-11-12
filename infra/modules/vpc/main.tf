@@ -170,8 +170,7 @@ resource "aws_subnet" "data" {
 
 # No aws_route is ever attached to this table. The local route that AWS adds
 # to every table is the only one, so the data tier can reach the VPC and
-# nothing else. Gateway endpoints add prefix-list routes, which stay on the
-# AWS network.
+# nothing else.
 resource "aws_route_table" "data" {
   vpc_id = aws_vpc.this.id
 

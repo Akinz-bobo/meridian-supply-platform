@@ -65,6 +65,7 @@ module "vpc_flow_logs" {
   vpc_id         = module.vpc.vpc_id
   account_id     = "333333333333"
   log_group_name = "/meridian/prod/network/flow-logs"
+  kms_key_arn    = "arn:aws:kms:eu-west-1:333333333333:key/11111111-2222-3333-4444-555555555555"
 
   permissions_boundary_arn = "arn:aws:iam::333333333333:policy/meridian-prod-workload-boundary"
 }

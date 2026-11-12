@@ -89,10 +89,16 @@ check 'every private route table leaves through a NAT gateway' jq -e \
 endpoints="$(as_account "$account" aws ec2 describe-vpc-endpoints --filters "Name=vpc-id,Values=$vpc_id" \
   --output json 2>/dev/null || echo '{}')"
 for service in s3 dynamodb; do
-  check "a gateway endpoint for $service is attached to the private and data route tables" jq -e --arg s "$service" \
+  check "a gateway endpoint for $service is attached to the three private route tables" jq -e --arg s "$service" \
     '[.VpcEndpoints[]? | select(.VpcEndpointType == "Gateway" and (.ServiceName | endswith("." + $s)))
-      | .RouteTableIds | length] == [4]' <<<"$endpoints"
+      | .RouteTableIds | length] == [3]' <<<"$endpoints"
+  check "the $service endpoint reaches only this account's resources" jq -e --arg s "$service" --arg a "$account" \
+    '.VpcEndpoints[]? | select(.VpcEndpointType == "Gateway" and (.ServiceName | endswith("." + $s)))
+      | .PolicyDocument | fromjson | .Statement[0].Condition.StringEquals["aws:ResourceAccount"] == $a' <<<"$endpoints"
 done
+check "every endpoint admits only this account's principals" jq -e --arg a "$account" \
+  '[.VpcEndpoints[]? | .PolicyDocument | fromjson | .Statement[]
+    | .Condition.StringEquals["aws:PrincipalAccount"] == $a] | length > 0 and all' <<<"$endpoints"
 check 'every interface endpoint has private DNS and an interface in three zones' jq -e \
   '[.VpcEndpoints[]? | select(.VpcEndpointType == "Interface")] as $i
     | ($i | length) > 0 and ($i | all(.PrivateDnsEnabled and (.SubnetIds | length) == 3))' <<<"$endpoints"
