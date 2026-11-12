@@ -4,6 +4,10 @@ Notable changes, newest first. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-12
+
+Milestone 3: data layer. The stores the services will use, each encrypted, protected against deletion and exercised through its API on every pull request, with no stored credential anywhere in the layer.
+
 ### Added
 
 - Data layer: a `data` state layer in every environment that reads the foundation from Parameter Store, the data architecture document with classification, retention and recovery targets, and policy rule POL-TAG-4.
@@ -75,7 +79,8 @@ Milestone 0: planning and architecture. No infrastructure exists yet. This relea
 - Roadmap with milestone order, dependencies and exit criteria.
 - CI for documentation: formatting, relative links and the decision record index.
 
-[Unreleased]: https://github.com/Akinz-bobo/meridian-supply-platform/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/Akinz-bobo/meridian-supply-platform/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Akinz-bobo/meridian-supply-platform/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Akinz-bobo/meridian-supply-platform/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Akinz-bobo/meridian-supply-platform/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Akinz-bobo/meridian-supply-platform/releases/tag/v0.1.0
