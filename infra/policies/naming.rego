@@ -35,6 +35,7 @@ name_attribute := {
 # Types named as a path: /<project>/<environment>/...
 path_attribute := {
 	"aws_cloudwatch_log_group": "name",
+	"aws_secretsmanager_secret": "name",
 	"aws_ssm_parameter": "name",
 }
 

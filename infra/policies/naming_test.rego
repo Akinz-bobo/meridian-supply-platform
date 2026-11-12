@@ -98,3 +98,15 @@ test_denies_a_network_resource_with_no_tags_at_all if {
 	some msg in messages
 	contains(msg, "POL-NAME-5")
 }
+
+test_denies_a_secret_outside_the_environment_path if {
+	rc := fixtures.create("aws_secretsmanager_secret", "s", {"name": "catalog-db-password"})
+	messages := naming.deny with input as fixtures.plan("prod", [rc])
+	some msg in messages
+	contains(msg, "POL-NAME-3")
+}
+
+test_allows_a_secret_under_its_service_path if {
+	rc := fixtures.create("aws_secretsmanager_secret", "s", {"name": "/meridian/prod/catalog/secrets/partner-api-token"})
+	count(naming.deny) == 0 with input as fixtures.plan("prod", [rc])
+}
