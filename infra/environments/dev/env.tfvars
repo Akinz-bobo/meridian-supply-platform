@@ -10,3 +10,9 @@ aws_account_id = "111111111111"
 vpc_cidr           = "10.10.0.0/16"
 availability_zones = ["eu-west-1a", "eu-west-1b", "eu-west-1c"]
 single_nat_gateway = true
+
+# Interface endpoints are billed per zone per hour. Dev keeps only the ones
+# needed to pull images and read secrets, and uses NAT for the rest.
+interface_endpoint_services = ["ecr.api", "ecr.dkr", "secretsmanager"]
+
+log_retention_days = 30

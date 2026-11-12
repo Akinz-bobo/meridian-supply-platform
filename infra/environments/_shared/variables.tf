@@ -48,3 +48,15 @@ variable "single_nat_gateway" {
   type        = bool
   default     = false
 }
+
+variable "interface_endpoint_services" {
+  description = "AWS services given an interface endpoint in the VPC. With null, the vpc-endpoints module's default set is used."
+  type        = set(string)
+  default     = null
+}
+
+variable "log_retention_days" {
+  description = "How long operational logs, including VPC flow logs, are kept."
+  type        = number
+  default     = 90
+}

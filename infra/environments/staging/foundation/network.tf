@@ -24,6 +24,34 @@ module "vpc" {
   private_subnet_tags = { "kubernetes.io/role/internal-elb" = "1" }
 }
 
+# Private paths to AWS services. The gateway endpoints are attached to the
+# private and data route tables, which is what lets the data tier reach S3
+# and DynamoDB with no route to the internet.
+module "vpc_endpoints" {
+  source = "../../../modules/vpc-endpoints"
+
+  name = module.network_context.prefix
+  tags = module.network_context.tags
+
+  vpc_id             = module.vpc.vpc_id
+  vpc_cidr_block     = module.vpc.cidr_block
+  route_table_ids    = concat(module.vpc.private_route_table_ids, [module.vpc.data_route_table_id])
+  subnet_ids         = module.vpc.private_subnet_ids
+  interface_services = var.interface_endpoint_services
+}
+
+module "vpc_flow_logs" {
+  source = "../../../modules/vpc-flow-logs"
+
+  name = module.network_context.prefix
+  tags = module.network_context.tags
+
+  vpc_id            = module.vpc.vpc_id
+  account_id        = var.aws_account_id
+  log_group_name    = "/${var.project}/${var.environment}/network/flow-logs"
+  retention_in_days = var.log_retention_days
+}
+
 # Published for other layers and for services. A consumer reads the path
 # /<project>/<environment>/network and needs no access to this layer's state.
 locals {
@@ -36,6 +64,9 @@ locals {
     "data-subnet-ids"         = { type = "StringList", value = join(",", module.vpc.data_subnet_ids) }
     "private-route-table-ids" = { type = "StringList", value = join(",", module.vpc.private_route_table_ids) }
     "data-route-table-id"     = { type = "String", value = module.vpc.data_route_table_id }
+    "flow-log-group"          = { type = "String", value = module.vpc_flow_logs.log_group_name }
+    "s3-prefix-list-id"       = { type = "String", value = module.vpc_endpoints.s3_prefix_list_id }
+    "dynamodb-prefix-list-id" = { type = "String", value = module.vpc_endpoints.dynamodb_prefix_list_id }
   }
 }
 
