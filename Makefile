@@ -101,6 +101,10 @@ report: ## Plan every layer of ENVS, check policies and write plan-report.md
 smoke: ## Check that the applied ENV looks right, by asking the AWS API
 	@./scripts/smoke-test.sh $(ENV)
 
+.PHONY: data-check
+data-check: ## Exercise the inventory tables' key design in ENV: idempotency, never negative, expiry order
+	@./scripts/data-model-check.sh $(ENV)
+
 .PHONY: state-audit
 state-audit: ## Fail if the remote state of ENV holds a secret value
 	@./scripts/state-audit.sh $(ENV)
