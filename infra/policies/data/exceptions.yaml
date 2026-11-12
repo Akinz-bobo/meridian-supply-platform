@@ -1,11 +1,43 @@
-# Approved exceptions to POL-PROTECT-1.
+# Approved exceptions to the policy checks.
 #
-# Add an entry in the same pull request as the change that needs it, and
-# remove it in the next one. Each entry needs every field:
-#
-#   - address: module.catalog_db.aws_db_instance.this
-#     environment: stg
-#     reason: Why this resource is being deleted or replaced on purpose.
-#     issue: 123
+# An exception is a decision, so each entry carries its reason and the issue
+# where it was decided. An entry with no reason is not accepted in review.
+
 exceptions:
+  # POL-PROTECT-1. Add an entry in the same pull request as the change that
+  # needs it, and remove it in the next one.
+  #
+  #   - address: module.catalog_db.aws_db_instance.this
+  #     environment: stg
+  #     reason: Why this resource is being deleted or replaced on purpose.
+  #     issue: 123
   protected_deletes: []
+
+  # POL-IAM-2. Policies that grant whole services on every resource.
+  wide_iam_policies:
+    - address: module.access_roles.aws_iam_policy.deploy
+      reason: >-
+        The pipeline runs Terraform, which creates, changes and deletes every
+        kind of resource the platform uses, so its policy lists whole
+        services. It is limited to one region, cannot create a role without
+        the workload boundary, and cannot change the boundary, its own role
+        or the other access roles.
+      issue: 20
+
+  # POL-IAM-4. Roles that do not carry the workload permission boundary.
+  roles_without_boundary:
+    - address: module.access_roles.aws_iam_role.deploy
+      reason: >-
+        The deploy role manages infrastructure, which the workload boundary
+        does not allow. It is confined by its own policy instead.
+      issue: 20
+    - address: module.access_roles.aws_iam_role.operator
+      reason: >-
+        Assumed by people with multi-factor authentication. Its permissions
+        are a fixed, reviewed list of read and operational actions.
+      issue: 20
+    - address: module.access_roles.aws_iam_role.audit
+      reason: >-
+        Assumed by people with multi-factor authentication. It has only the
+        AWS managed SecurityAudit and ViewOnlyAccess policies.
+      issue: 20

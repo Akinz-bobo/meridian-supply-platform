@@ -71,13 +71,17 @@ The list is in [`data/settings.yaml`](../../infra/policies/data/settings.yaml).
 
 ### IAM
 
-| Rule      | Rejects                                                      | Reason                                        |
-| --------- | ------------------------------------------------------------ | --------------------------------------------- |
-| POL-IAM-1 | A policy allowing every action on every resource             | It is administrator access under another name |
-| POL-IAM-2 | A policy allowing a whole service (`s3:*`) on every resource | Almost never what was needed                  |
-| POL-IAM-3 | A role that any principal can assume, with no condition      | Anyone in any account could take the role     |
+| Rule      | Rejects                                                           | Reason                                                                                |
+| --------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| POL-IAM-1 | A policy allowing every action on every resource                  | It is administrator access under another name                                         |
+| POL-IAM-2 | A policy allowing a whole service (`s3:*`) on every resource      | Almost never what was needed                                                          |
+| POL-IAM-3 | A role that any principal can assume, with no condition           | Anyone in any account could take the role                                             |
+| POL-IAM-4 | A role with no permission boundary                                | The boundary is what contains a mistake in a single role's policy                     |
+| POL-IAM-5 | Nothing. It warns when a policy document is not known until apply | Such a document passes POL-IAM-1 and POL-IAM-2 unread. The warning makes that visible |
 
 These catch the shapes that defeat least privilege outright. They are a floor. Whether a policy is as narrow as it could be is a matter for review.
+
+POL-IAM-2 and POL-IAM-4 accept recorded exceptions, listed with their reasons in [`data/exceptions.yaml`](../../infra/policies/data/exceptions.yaml): the pipeline's deploy policy, and the three roles through which the pipeline and people enter an account. An exception for POL-IAM-2 does not excuse POL-IAM-1. How policies are written so that these checks can read them is in the [access model](../architecture/access-model.md#policies-are-built-so-they-can-be-checked).
 
 ### Protected resources
 
