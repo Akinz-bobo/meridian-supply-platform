@@ -423,6 +423,16 @@ check "a certificate is issued for $domain" jq -e --arg d "$domain" \
   'any(.CertificateSummaryList[]?; .DomainName == $d and .Status == "ISSUED")' \
   <<<"$(as_account "$account" aws acm list-certificates --output json 2>/dev/null || echo '{}')"
 
+# Compute layer: the ECS cluster.
+cluster="$(as_account "$account" aws ecs describe-clusters --clusters "meridian-$environment-compute" \
+  --include SETTINGS CONFIGURATIONS --output json 2>/dev/null | jq -c '.clusters[0] // {}' || echo '{}')"
+check 'the ECS cluster is active' jq -e '.status == "ACTIVE"' <<<"$cluster"
+check 'it reports metrics per container' jq -e \
+  'any(.settings[]?; .name == "containerInsights" and .value == "enabled")' <<<"$cluster"
+check 'it records shell sessions, encrypted with the logs key' jq -e --arg k "$logs_key_arn" \
+  '.configuration.executeCommandConfiguration | .logging == "OVERRIDE" and .kmsKeyId == $k
+    and .logConfiguration.cloudWatchEncryptionEnabled' <<<"$cluster"
+
 while IFS= read -r layer; do
   check "state for the $layer layer is in the shared bucket" \
     as_account "$state_account" aws s3api head-object --bucket "$state_bucket" --key "$1/$layer/terraform.tfstate"
