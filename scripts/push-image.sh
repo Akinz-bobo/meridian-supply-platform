@@ -3,7 +3,8 @@
 # repository in an environment.
 #
 # Usage: push-image.sh <environment-directory> <service>
-# Prints the full image reference on the last line.
+# Prints the full image reference on the last line, and records it as the
+# image to deploy, in the parameter /meridian/<env>/<service>/image.
 #
 # The tag is the content of the service's directory: a hash of every file
 # that goes into the image. The same source always gets the same tag, so
@@ -39,8 +40,16 @@ tag="$(cd "$source_dir" && find . -type f -not -path './tests/*' -not -name '*.p
   -not -name README.md -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -c1-12)"
 image="$repository:$tag"
 
+# record: makes this image the one the services layer deploys. The
+# parameter is created by the compute layer, and its value is set here.
+record() {
+  aws ssm put-parameter --name "/meridian/$environment/$service/image" --value "$image" --type String \
+    --overwrite >/dev/null
+}
+
 if aws ecr describe-images --repository-name "$name" --image-ids "imageTag=$tag" >/dev/null 2>&1; then
   echo "$service $tag is already in the registry." >&2
+  record
   echo "$image"
   exit 0
 fi
@@ -70,5 +79,7 @@ docker push --quiet "$target" >&2
 # Confirm through the ECR API, which is what a deployment will use.
 aws ecr describe-images --repository-name "$name" --image-ids "imageTag=$tag" >/dev/null ||
   { echo "The image was pushed and the registry does not list it." >&2; exit 1; }
+
+record
 
 echo "$image"
