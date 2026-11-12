@@ -1,0 +1,51 @@
+# The environment's network: three tiers across three zones.
+
+module "network_context" {
+  source = "../../../modules/context"
+
+  project     = var.project
+  environment = var.environment
+  component   = "network"
+}
+
+module "vpc" {
+  source = "../../../modules/vpc"
+
+  name = module.network_context.prefix
+  tags = module.network_context.tags
+
+  cidr_block         = var.vpc_cidr
+  availability_zones = var.availability_zones
+  single_nat_gateway = var.single_nat_gateway
+
+  # The tags a Kubernetes load balancer controller uses to find the subnets
+  # for internet-facing and internal load balancers.
+  public_subnet_tags  = { "kubernetes.io/role/elb" = "1" }
+  private_subnet_tags = { "kubernetes.io/role/internal-elb" = "1" }
+}
+
+# Published for other layers and for services. A consumer reads the path
+# /<project>/<environment>/network and needs no access to this layer's state.
+locals {
+  network_parameters = {
+    "vpc-id"                  = { type = "String", value = module.vpc.vpc_id }
+    "vpc-cidr"                = { type = "String", value = module.vpc.cidr_block }
+    "availability-zones"      = { type = "StringList", value = join(",", module.vpc.availability_zones) }
+    "public-subnet-ids"       = { type = "StringList", value = join(",", module.vpc.public_subnet_ids) }
+    "private-subnet-ids"      = { type = "StringList", value = join(",", module.vpc.private_subnet_ids) }
+    "data-subnet-ids"         = { type = "StringList", value = join(",", module.vpc.data_subnet_ids) }
+    "private-route-table-ids" = { type = "StringList", value = join(",", module.vpc.private_route_table_ids) }
+    "data-route-table-id"     = { type = "String", value = module.vpc.data_route_table_id }
+  }
+}
+
+resource "aws_ssm_parameter" "network" {
+  for_each = local.network_parameters
+
+  name        = "${module.network_context.ssm_path}/${each.key}"
+  description = "Network fact published by the foundation layer."
+  type        = each.value.type
+  value       = each.value.value
+
+  tags = module.network_context.tags
+}
