@@ -1,5 +1,6 @@
 # Plan-only tests against a mocked provider. No AWS account or emulator is
-# needed.
+# needed. The endpoint policies are tested in endpoint_policy.tftest.hcl,
+# which needs the real provider to render JSON.
 
 mock_provider "aws" {
   mock_data "aws_region" {
@@ -7,13 +8,20 @@ mock_provider "aws" {
       region = "eu-west-1"
     }
   }
+
+  mock_data "aws_iam_policy_document" {
+    defaults = {
+      json = "{\"Version\":\"2012-10-17\",\"Statement\":[]}"
+    }
+  }
 }
 
 variables {
   name            = "meridian-prod-network"
   vpc_id          = "vpc-0123456789abcdef0"
+  account_id      = "333333333333"
   vpc_cidr_block  = "10.30.0.0/16"
-  route_table_ids = ["rtb-private-a", "rtb-private-b", "rtb-private-c", "rtb-data"]
+  route_table_ids = ["rtb-private-a", "rtb-private-b", "rtb-private-c"]
   subnet_ids      = ["subnet-private-a", "subnet-private-b", "subnet-private-c"]
   tags = {
     Project = "meridian"
@@ -43,8 +51,8 @@ run "attaches_gateway_endpoints_to_every_given_route_table" {
   command = plan
 
   assert {
-    condition     = length(aws_vpc_endpoint.gateway["s3"].route_table_ids) == 4
-    error_message = "The S3 endpoint must be routed from every private and data route table."
+    condition     = length(aws_vpc_endpoint.gateway["s3"].route_table_ids) == 3
+    error_message = "The S3 endpoint must be routed from every route table it is given."
   }
 }
 
@@ -136,4 +144,14 @@ run "rejects_a_full_service_name" {
   }
 
   expect_failures = [var.interface_services]
+}
+
+run "rejects_a_malformed_account_id" {
+  command = plan
+
+  variables {
+    account_id = "prod"
+  }
+
+  expect_failures = [var.account_id]
 }
