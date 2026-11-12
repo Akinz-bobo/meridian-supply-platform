@@ -83,6 +83,7 @@ See [local development](docs/guides/local-development.md).
 | [Secrets and configuration](docs/architecture/secrets-and-configuration.md) | One path per service, access by path, and how secret values stay out of Terraform state               |
 | [Threat model](docs/architecture/security/threat-model.md)                  | What could go wrong in the network and identity layers, what stops it and what is left                |
 | [Baseline review](docs/architecture/security/baseline-review.md)            | The review of milestone 2: twelve findings, each fixed or tracked                                     |
+| [Data architecture](docs/architecture/data.md)                              | Which store holds what, classification, retention and recovery targets                                |
 
 Changes are summarised in the [changelog](CHANGELOG.md).
 
