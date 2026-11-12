@@ -17,6 +17,7 @@ infra/
       data/          state layer: stores
       messaging/     state layer: event bus, queues, topics, stream
       compute/       state layer: registry, load balancer, clusters, hosts
+      services/      state layer: the workloads, deployed onto the platform
     staging/
     production/
 ```
