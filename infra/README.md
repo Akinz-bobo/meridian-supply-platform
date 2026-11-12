@@ -40,6 +40,7 @@ make test                        # module plan tests. Nothing needs to be runnin
 make test-emulator               # module apply tests, against the emulator
 make smoke                       # ask the AWS API whether the environment looks right
 make state-audit                 # fail if the remote state holds a secret value
+make data-check                  # exercise the inventory tables' key design against the environment
 make policy                      # plan a layer and check it against the policies
 ```
 
@@ -109,18 +110,19 @@ This creates a skeleton that meets the [module standards](../docs/architecture/m
 
 ## Modules
 
-| Module                                                         | Creates                                                                              |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| [access-roles](modules/access-roles/README.md)                 | The deploy, operator and audit roles, and the GitHub identity provider               |
-| [account-baseline](modules/account-baseline/README.md)         | Account-wide safe defaults: no public buckets, encrypted volumes, access analyzer    |
-| [context](modules/context/README.md)                           | Nothing. Builds the names and tags every other module uses                           |
-| [data-bucket](modules/data-bucket/README.md)                   | A private, encrypted, versioned bucket with lifecycle rules and access policies      |
-| [kms-key](modules/kms-key/README.md)                           | A rotating encryption key with an alias and a key policy that delegates to IAM       |
-| [permission-boundary](modules/permission-boundary/README.md)   | The limit on what any workload role in an environment can be granted                 |
-| [service-config](modules/service-config/README.md)             | A service's parameters and secrets under its own path, with the policy to read them  |
-| [state-bucket](modules/state-bucket/README.md)                 | The encrypted, versioned bucket that holds Terraform state                           |
-| [tier-security-groups](modules/tier-security-groups/README.md) | One security group per tier, linked by group reference                               |
-| [vpc](modules/vpc/README.md)                                   | A three-tier network across three zones, with an isolated data tier                  |
-| [vpc-endpoints](modules/vpc-endpoints/README.md)               | Gateway and interface endpoints, so traffic to AWS services stays on the AWS network |
-| [vpc-flow-logs](modules/vpc-flow-logs/README.md)               | A record of VPC traffic in CloudWatch Logs, with a narrow delivery role              |
-| [workload-role](modules/workload-role/README.md)               | The role a workload runs as, with trust set by compute type and a required boundary  |
+| Module                                                         | Creates                                                                               |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| [access-roles](modules/access-roles/README.md)                 | The deploy, operator and audit roles, and the GitHub identity provider                |
+| [account-baseline](modules/account-baseline/README.md)         | Account-wide safe defaults: no public buckets, encrypted volumes, access analyzer     |
+| [context](modules/context/README.md)                           | Nothing. Builds the names and tags every other module uses                            |
+| [data-bucket](modules/data-bucket/README.md)                   | A private, encrypted, versioned bucket with lifecycle rules and access policies       |
+| [dynamodb-table](modules/dynamodb-table/README.md)             | A table with encryption, point-in-time recovery, indexes, streams and access policies |
+| [kms-key](modules/kms-key/README.md)                           | A rotating encryption key with an alias and a key policy that delegates to IAM        |
+| [permission-boundary](modules/permission-boundary/README.md)   | The limit on what any workload role in an environment can be granted                  |
+| [service-config](modules/service-config/README.md)             | A service's parameters and secrets under its own path, with the policy to read them   |
+| [state-bucket](modules/state-bucket/README.md)                 | The encrypted, versioned bucket that holds Terraform state                            |
+| [tier-security-groups](modules/tier-security-groups/README.md) | One security group per tier, linked by group reference                                |
+| [vpc](modules/vpc/README.md)                                   | A three-tier network across three zones, with an isolated data tier                   |
+| [vpc-endpoints](modules/vpc-endpoints/README.md)               | Gateway and interface endpoints, so traffic to AWS services stays on the AWS network  |
+| [vpc-flow-logs](modules/vpc-flow-logs/README.md)               | A record of VPC traffic in CloudWatch Logs, with a narrow delivery role               |
+| [workload-role](modules/workload-role/README.md)               | The role a workload runs as, with trust set by compute type and a required boundary   |
