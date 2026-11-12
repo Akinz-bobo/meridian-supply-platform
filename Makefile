@@ -101,6 +101,10 @@ report: ## Plan every layer of ENVS, check policies and write plan-report.md
 smoke: ## Check that the applied ENV looks right, by asking the AWS API
 	@./scripts/smoke-test.sh $(ENV)
 
+.PHONY: state-audit
+state-audit: ## Fail if the remote state of ENV holds a secret value
+	@./scripts/state-audit.sh $(ENV)
+
 .PHONY: fmt
 fmt: ## Format every Terraform file
 	terraform fmt -recursive infra
@@ -147,5 +151,9 @@ module: ## Create the skeleton of a new module: make module NAME=sqs-consumer-qu
 check: validate lint scan test policy-test docs-check ## Every infrastructure check that needs no emulator
 
 .PHONY: test
-test: ## Run the tests of every module that has them
+test: ## Run the plan tests of every module. Needs nothing running
 	@./scripts/terraform-test-all.sh
+
+.PHONY: test-emulator
+test-emulator: ## Run the apply tests of every module against the emulator
+	@./scripts/terraform-test-all.sh --emulator
