@@ -7,6 +7,7 @@ Notable changes, newest first. The format follows [Keep a Changelog](https://kee
 ### Added
 
 - Messaging: a `messaging` state layer, a tested `event-bus` module with an archive, an event log and a publish policy per producer, and the event envelope as JSON Schema with a dependency-free validator and `make contract-test`.
+- Consumer queues: a tested `event-consumer-queue` module (queue, dead-letter queue, rule, alarm and a consume policy), and the first three queues in every environment.
 
 ## [0.4.0] - 2026-11-12
 

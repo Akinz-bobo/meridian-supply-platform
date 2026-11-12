@@ -2,12 +2,13 @@
 
 How services tell each other what happened: the bus, the contract every event follows, and who is allowed to say what. The reasoning is in [decision record 0006](../adr/0006-event-backbone-and-messaging-conventions.md), and the list of events is the [event catalogue](events.md).
 
-This document grows through milestone 4. It covers the bus and the contract. Consumer queues, notification topics and the movement stream are added as they are built.
+This document grows through milestone 4. It covers the bus, the contract and consumer queues. Notification topics and the movement stream are added as they are built.
 
 - [The shape of it](#the-shape-of-it)
 - [The bus](#the-bus)
 - [The contract](#the-contract)
 - [Who may publish what](#who-may-publish-what)
+- [Consumer queues](#consumer-queues)
 - [The messaging layer](#the-messaging-layer)
 - [How it is enforced](#how-it-is-enforced)
 - [What the emulator does not prove](#what-the-emulator-does-not-prove)
@@ -75,6 +76,31 @@ Two controls, at different levels.
 | The bus policy denies principals outside the account                            | Anyone adding the bus to another account's reach                       |
 
 What neither stops: a service publishing a well-formed event with wrong content under its own name. A consumer trusts the producer for the facts. That is why the producer is identified and cannot be impersonated.
+
+## Consumer queues
+
+A consumer never reads the bus. It has a queue for each event it is interested in, built by the [`event-consumer-queue` module](../../infra/modules/event-consumer-queue/README.md), which has the diagram.
+
+| The queue gives the consumer | How                                                                                                                    |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Buffering                    | Events wait in the queue while the consumer is slow, deploying or down. Four days by default                           |
+| Retries                      | A message that is received and not deleted becomes visible again and is delivered again                                |
+| Isolation                    | Each consumer has its own queue. One consumer's backlog or poison message does not touch another                       |
+| A place for failures         | After five failed receives a message moves to the dead-letter queue, raises an alarm and waits 14 days to be looked at |
+
+The first three queues:
+
+| Queue                                        | Consumer  | Event              | For                                                                         |
+| -------------------------------------------- | --------- | ------------------ | --------------------------------------------------------------------------- |
+| `meridian-<env>-inventory-product-published` | Inventory | `ProductPublished` | Knowing a product's storage class and shelf life before stock of it arrives |
+| `meridian-<env>-inventory-goods-received`    | Inventory | `GoodsReceived`    | Recording the receipt as a movement                                         |
+| `meridian-<env>-budget-goods-received`       | Budget    | `GoodsReceived`    | Turning a commitment into actual spend                                      |
+
+Two of them take the same event. That is the point of the design: procurement publishes `GoodsReceived` once and does not know that two services act on it.
+
+A queue is added to `messaging/consumers.tf` when its consumer is about to be built. Each queue's URL is published under the consumer's own path, `/meridian/<env>/<service>/queues/<event>-url`.
+
+**What a consumer must do.** Delivery is at least once, so a consumer records each event `id` with its effect and ignores one it has seen. It deletes a message only after its effect is committed. It lets a message it cannot process fail, so that the message reaches the dead-letter queue, and does not swallow the error.
 
 ## The messaging layer
 
