@@ -124,6 +124,10 @@ data-check: ## Use the stores of ENV the way a service would: key design, SQL, c
 	@./scripts/cache-acl-check.sh $(ENV)
 	@./scripts/backup-check.sh $(ENV)
 
+.PHONY: event-check
+event-check: ## Send events through ENV and follow them: fan-out, dead-letter, redrive, alarms, notifications, stream order
+	@./scripts/event-check.sh $(ENV)
+
 .PHONY: state-audit
 state-audit: ## Fail if the remote state of ENV holds a secret value
 	@./scripts/state-audit.sh $(ENV)
