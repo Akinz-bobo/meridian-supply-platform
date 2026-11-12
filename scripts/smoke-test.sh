@@ -57,6 +57,34 @@ for tag in Project Environment Component ManagedBy; do
   check "it carries the $tag tag" jq -e --arg t "$tag" '[.TagList[]?.Key] | index($t) != null' <<<"$tags"
 done
 
+# Network: ask the EC2 API what was built, starting from the published VPC id.
+network="/meridian/$environment/network"
+vpc_id="$(as_account "$account" aws ssm get-parameter --name "$network/vpc-id" --output json 2>/dev/null |
+  jq -r '.Parameter.Value // empty' || true)"
+check "the VPC id is published at $network/vpc-id" test -n "$vpc_id"
+
+subnets="$(as_account "$account" aws ec2 describe-subnets --filters "Name=vpc-id,Values=$vpc_id" \
+  --output json 2>/dev/null || echo '{}')"
+for tier in public private data; do
+  check "the $tier tier has a subnet in each of three zones" jq -e --arg t "$tier" \
+    '[.Subnets[]? | select(any(.Tags[]?; .Key == "Tier" and .Value == $t)) | .AvailabilityZone] | unique | length == 3' \
+    <<<"$subnets"
+done
+check 'no subnet assigns public addresses on launch' \
+  jq -e '[.Subnets[]? | select(.MapPublicIpOnLaunch)] | length == 0' <<<"$subnets"
+
+routes="$(as_account "$account" aws ec2 describe-route-tables --filters "Name=vpc-id,Values=$vpc_id" \
+  --output json 2>/dev/null || echo '{}')"
+data_table='.RouteTables[]? | select(any(.Tags[]?; .Key == "Tier" and .Value == "data"))'
+check 'the data route table is associated with three subnets' \
+  jq -e "[$data_table | .Associations[]?] | length == 3" <<<"$routes"
+check 'the data tier has no route out of the VPC' \
+  jq -e "[$data_table | .Routes[]? | select(.GatewayId != \"local\")] | length == 0" <<<"$routes"
+check 'every private route table leaves through a NAT gateway' jq -e \
+  '[.RouteTables[]? | select(any(.Tags[]?; .Key == "Tier" and .Value == "private"))
+    | any(.Routes[]?; .DestinationCidrBlock == "0.0.0.0/0" and .NatGatewayId != null)] | length == 3 and all' \
+  <<<"$routes"
+
 while IFS= read -r layer; do
   check "state for the $layer layer is in the shared bucket" \
     as_account "$state_account" aws s3api head-object --bucket "$state_bucket" --key "$1/$layer/terraform.tfstate"
