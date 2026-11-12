@@ -8,6 +8,7 @@ Notable changes, newest first. The format follows [Keep a Changelog](https://kee
 
 - Compute: a `compute` state layer, a tested `container-repository` module, a hardened sample service with tests, `make image` to build and push by content hash, and kubectl and Helm in the pinned tools.
 - Load balancing: a tested `load-balancer` module with a TLS-only listener and a default refusal, a certificate and a load balancer in every environment.
+- ECS: tested `ecs-cluster` and `ecs-service` modules, a cluster in every environment, and a release pointer per service that the pipeline sets when it pushes an image.
 
 ## [0.5.0] - 2026-11-12
 
