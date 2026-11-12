@@ -6,22 +6,22 @@ Private paths from a VPC to AWS services: gateway endpoints for S3 and DynamoDB,
 flowchart LR
     subgraph vpc[VPC]
         workload[Workload<br/>private subnet]
-        database[Database<br/>data subnet]
         eni[Interface endpoints<br/>one network interface per zone]
-        rt[Route tables<br/>private and data]
+        rt[Private route tables]
     end
     workload -- HTTPS 443 --> eni
     workload --> rt
-    database --> rt
     rt -- prefix list route --> gw[Gateway endpoints]
-    gw --> s3[(S3)]
-    gw --> ddb[(DynamoDB)]
-    eni --> apis[ECR, KMS, Logs, Secrets Manager,<br/>SQS, SSM, STS]
+    gw -- "this account's<br/>resources only" --> s3[(S3)]
+    gw -- "this account's<br/>resources only" --> ddb[(DynamoDB)]
+    eni -- "this account's<br/>principals only" --> apis[ECR, KMS, Logs, Secrets Manager,<br/>SQS, SSM, STS]
 ```
 
 What a caller needs to know:
 
-- **Gateway endpoints are free and always worth having.** They add a route to each route table passed in `route_table_ids`. Pass the private and the data route tables: that is what lets the data tier reach S3 and DynamoDB while having no route to the internet.
+- **Every endpoint has a policy.** An endpoint with no policy lets any principal reach any resource of the service, so a compromised workload could copy data to a bucket in another account without touching the internet. Gateway endpoints admit this account's principals and reach this account's resources only. Interface endpoints admit this account's principals only.
+- **One exception, for image layers.** ECR serves layers from a bucket it owns, so the S3 endpoint also allows `s3:GetObject` on that bucket. Without it, image pulls through the endpoint fail.
+- **Gateway endpoints are free and always worth having.** They add a route to each route table passed in `route_table_ids`. Pass the private route tables. The data tier holds managed stores that open no connections of their own, and its network ACL allows traffic to the VPC only, so it is not given a route.
 - **Interface endpoints are billed per zone per hour**, so the set is an input. The default covers what a container workload needs to start without NAT: pull an image, write logs, read a secret, decrypt, and obtain credentials. A development environment can pass a shorter list and let the rest go through NAT.
 - **One security group fronts all interface endpoints.** It accepts HTTPS from the VPC range and nothing else. With no interface endpoints it is not created.
 - **Private DNS is always on.** Without it an SDK resolves the public endpoint and the interface endpoint is never used.
@@ -44,6 +44,7 @@ module "vpc_endpoints" {
   name            = module.context.prefix
   tags            = module.context.tags
   vpc_id          = "vpc-0123456789abcdef0"
+  account_id      = "333333333333"
   vpc_cidr_block  = "10.30.0.0/16"
   route_table_ids = ["rtb-0123456789abcdef0"]
   subnet_ids      = ["subnet-0123456789abcdef0"]
@@ -61,8 +62,9 @@ module "vpc_endpoints" {
 
 | Name | Description | Type | Default | Required |
 | ---- | ----------- | ---- | ------- | :------: |
+| account\_id | Account the VPC is in. Endpoint policies admit this account's principals, and gateway endpoints reach this account's resources only. | `string` | n/a | yes |
 | name | Prefix for the endpoints and their security group. Take it from the context module's prefix. | `string` | n/a | yes |
-| route\_table\_ids | Route tables that get routes to the gateway endpoints. Pass the private and data route tables. | `list(string)` | n/a | yes |
+| route\_table\_ids | Route tables that get routes to the gateway endpoints. Pass the private route tables. | `list(string)` | n/a | yes |
 | subnet\_ids | Subnets that get a network interface for each interface endpoint, one per zone. Pass the private subnets. | `list(string)` | n/a | yes |
 | tags | Tags for every resource in the module. Take them from the context module. | `map(string)` | n/a | yes |
 | vpc\_cidr\_block | Address range of the VPC. Interface endpoints accept HTTPS from this range only. | `string` | n/a | yes |
@@ -88,5 +90,7 @@ module "vpc_endpoints" {
 | [aws_vpc_endpoint.gateway](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_endpoint) | resource |
 | [aws_vpc_endpoint.interface](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_endpoint) | resource |
 | [aws_vpc_security_group_ingress_rule.interface_https](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_ingress_rule) | resource |
+| [aws_iam_policy_document.gateway](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_iam_policy_document.interface](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_region.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/region) | data source |
 <!-- END_TF_DOCS -->
