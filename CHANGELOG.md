@@ -9,6 +9,7 @@ Notable changes, newest first. The format follows [Keep a Changelog](https://kee
 - Network: a tested `vpc` module with public, private and isolated data tiers across three zones, added to every environment and published to Parameter Store, with network checks in the smoke test, policy rule POL-NAME-5 and a network architecture document.
 - VPC endpoints and flow logs: tested `vpc-endpoints` and `vpc-flow-logs` modules in every environment, smoke checks for both, and policy rules POL-LOG-1 and POL-LOG-2 for log retention.
 - Security group baseline: a tested `tier-security-groups` module giving each tier one group linked by group reference, smoke checks, and policy rules POL-SG-1 and POL-SG-2.
+- Encryption: a tested `kms-key` module, four keys per environment (data, logs, messaging, secrets), flow logs encrypted with the logs key, the encryption standard, decision record 0010, and policy rules POL-KMS-1, POL-KMS-2 and POL-LOG-3.
 
 ## [0.2.0] - 2026-11-11
 

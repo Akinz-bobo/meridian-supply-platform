@@ -108,6 +108,7 @@ This creates a skeleton that meets the [module standards](../docs/architecture/m
 | Module                                                         | Creates                                                                              |
 | -------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
 | [context](modules/context/README.md)                           | Nothing. Builds the names and tags every other module uses                           |
+| [kms-key](modules/kms-key/README.md)                           | A rotating encryption key with an alias and a key policy that delegates to IAM       |
 | [state-bucket](modules/state-bucket/README.md)                 | The encrypted, versioned bucket that holds Terraform state                           |
 | [tier-security-groups](modules/tier-security-groups/README.md) | One security group per tier, linked by group reference                               |
 | [vpc](modules/vpc/README.md)                                   | A three-tier network across three zones, with an isolated data tier                  |
