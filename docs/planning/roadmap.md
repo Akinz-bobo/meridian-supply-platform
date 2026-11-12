@@ -60,7 +60,7 @@ M3, M4 and M5 are independent of each other and could be worked in parallel by a
 
 ## Milestones
 
-Each milestone has a goal, deliverables and exit criteria. Milestones 0 to 3 are broken into issues. Later ones are a single epic that is broken down when the milestone before it closes, as the [delivery process](delivery-process.md#milestones) describes.
+Each milestone has a goal, deliverables and exit criteria. Milestones 0 to 4 are broken into issues. Later ones are a single epic that is broken down when the milestone before it closes, as the [delivery process](delivery-process.md#milestones) describes.
 
 ### M0: Planning and architecture
 
@@ -119,6 +119,8 @@ Each milestone has a goal, deliverables and exit criteria. Milestones 0 to 3 are
 **Goal.** The event backbone from [decision record 0006](../adr/0006-event-backbone-and-messaging-conventions.md): the bus, a module that gives a consumer its queue and dead-letter queue in one call, the movement stream and notification topics.
 
 **Exit criteria.** An event put on the bus arrives in a consumer's queue, a poisoned message lands in the dead-letter queue, and that raises an alarm.
+
+**Issues.** The messaging layer, the event bus and the event contract (97), the consumer queue module (98), notification topics (99), the movement stream (100), an event flow check and a dead-letter queue runbook (101), and a review and release (102).
 
 ### M5: Compute platforms
 
