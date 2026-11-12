@@ -69,21 +69,27 @@ bootstrap: ## Create the remote state bucket (once, before the first apply)
 	terraform -chdir=infra/bootstrap init -input=false
 	terraform -chdir=infra/bootstrap apply -input=false -auto-approve -var-file=bootstrap.tfvars
 
+# Extra arguments for plan, apply and destroy, placed after the variable
+# file so that a -var given here wins over the file. An environment
+# variable such as TF_VAR_disposable would not: a value in env.tfvars
+# takes precedence over it. Used by `make teardown`.
+TF_EXTRA_VARS ?=
+
 .PHONY: init
 init: ## Initialise Terraform for ENV and LAYER against the remote state
 	$(TF) init -input=false -reconfigure $(BACKEND)
 
 .PHONY: plan
 plan: init ## Show what would change for ENV and LAYER
-	$(TF) plan -input=false $(TF_VARS)
+	$(TF) plan -input=false $(TF_VARS) $(TF_EXTRA_VARS)
 
 .PHONY: apply
 apply: init ## Apply ENV and LAYER
-	$(TF) apply -input=false -auto-approve $(TF_VARS)
+	$(TF) apply -input=false -auto-approve $(TF_VARS) $(TF_EXTRA_VARS)
 
 .PHONY: destroy
 destroy: init ## Destroy ENV and LAYER
-	$(TF) destroy -input=false -auto-approve $(TF_VARS)
+	$(TF) destroy -input=false -auto-approve $(TF_VARS) $(TF_EXTRA_VARS)
 
 .PHONY: apply-all
 apply-all: ## Apply every layer of ENV, in dependency order
@@ -100,8 +106,8 @@ destroy-all: ## Destroy every layer of ENV, in reverse order
 .PHONY: teardown
 teardown: ## Lift ENV's deletion protections, then destroy every layer. For rehearsals and for decommissioning
 	@echo "Lifting deletion protections in $(ENV), then destroying it."
-	@TF_VAR_disposable=true ./scripts/each-layer.sh apply $(ENV)
-	@TF_VAR_disposable=true ./scripts/each-layer.sh destroy $(ENV)
+	@TF_EXTRA_VARS='-var disposable=true' ./scripts/each-layer.sh apply $(ENV)
+	@TF_EXTRA_VARS='-var disposable=true' ./scripts/each-layer.sh destroy $(ENV)
 
 .PHONY: report
 report: ## Plan every layer of ENVS, check policies and write plan-report.md
