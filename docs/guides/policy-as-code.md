@@ -99,12 +99,20 @@ A replacement counts as a delete. Changing an attribute that forces Terraform to
 
 POL-SG-1 reads all three ways Terraform can express a rule: the per-rule resources, the older `aws_security_group_rule`, and rules written inline in `aws_security_group`. A port range that merely includes a web port, such as 0 to 65535, is rejected.
 
+### Encryption keys
+
+| Rule      | Requires                              | Reason                                                                                      |
+| --------- | ------------------------------------- | ------------------------------------------------------------------------------------------- |
+| POL-KMS-1 | Every key rotates                     | Limits how much data one version of key material protects                                   |
+| POL-KMS-2 | A deletion window of at least 14 days | Deleting a key destroys access to everything it encrypted. The window is the time to notice |
+
 ### Logging
 
-| Rule      | Requires                                 | Reason                                                       |
-| --------- | ---------------------------------------- | ------------------------------------------------------------ |
-| POL-LOG-1 | Every log group has a retention period   | Without one, logs are kept and paid for indefinitely         |
-| POL-LOG-2 | The retention period is at least 30 days | Shorter, and the logs are gone before an incident is noticed |
+| Rule      | Requires                                                 | Reason                                                                                              |
+| --------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| POL-LOG-1 | Every log group has a retention period                   | Without one, logs are kept and paid for indefinitely                                                |
+| POL-LOG-2 | The retention period is at least 30 days                 | Shorter, and the logs are gone before an incident is noticed                                        |
+| POL-LOG-3 | Every log group is encrypted with a customer managed key | Logs contain request data. The [encryption standard](../architecture/encryption.md) applies to them |
 
 ## Running the checks
 
