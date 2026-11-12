@@ -36,3 +36,7 @@ database_backup_retention_days = 1
 
 cache_node_type = "cache.t4g.micro"
 cache_replicas  = 0
+
+# Where the environment is served. The .example domain is reserved for
+# documentation: replace it with a domain you control.
+domain_name = "dev.meridian.example"

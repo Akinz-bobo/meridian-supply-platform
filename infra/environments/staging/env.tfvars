@@ -25,3 +25,7 @@ database_backup_retention_days = 7
 # on, and the pipeline cannot delete encryption keys. False is the default.
 # It is stated so that the decision is visible in this file.
 disposable = false
+
+# Where the environment is served. The .example domain is reserved for
+# documentation: replace it with a domain you control.
+domain_name = "staging.meridian.example"
