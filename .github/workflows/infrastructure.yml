@@ -122,7 +122,11 @@ jobs:
             make apply-all ENV="$environment"
             echo "::endgroup::"
             make smoke ENV="$environment"
+            make state-audit ENV="$environment"
           done
+
+      - name: Run module apply tests
+        run: make test-emulator
 
       - name: Rehearse the teardown
         run: |
@@ -189,7 +193,8 @@ jobs:
             make apply-all ENV="$environment"
             echo "::endgroup::"
             make smoke ENV="$environment"
-            echo "| \`$environment\` | applied, smoke test passed |" >> "$GITHUB_STEP_SUMMARY"
+            make state-audit ENV="$environment"
+            echo "| \`$environment\` | applied, smoke test passed, no secrets in state |" >> "$GITHUB_STEP_SUMMARY"
           done
 
       - name: Show emulator logs on failure
