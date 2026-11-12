@@ -13,8 +13,8 @@ The plan for building Meridian, milestone by milestone: what each delivers, what
 | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ------- | -------- |
 | [M0: Planning and architecture](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/1)               | The problem, domain, architecture, decisions and process, in writing               | v0.1.0  | Complete |
 | [M1: Infrastructure foundation](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/2)               | Emulator, Terraform layout, remote state, static analysis, policy checks, pipeline | v0.2.0  | Complete |
-| [M2: Network and security baseline](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/3)           | VPC, endpoints, security groups, KMS, IAM, secrets                                 | v0.3.0  | Next     |
-| [M3: Data layer](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/4)                              | RDS, DynamoDB, S3, ElastiCache modules                                             | v0.4.0  | Planned  |
+| [M2: Network and security baseline](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/3)           | VPC, endpoints, security groups, KMS, IAM, secrets                                 | v0.3.0  | Complete |
+| [M3: Data layer](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/4)                              | RDS, DynamoDB, S3, ElastiCache modules                                             | v0.4.0  | Next     |
 | [M4: Messaging and events](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/5)                    | SQS, SNS, Kinesis, EventBridge modules                                             | v0.5.0  | Planned  |
 | [M5: Compute platforms](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/6)                       | ECR, ECS, EKS, load balancing, the EC2 gateway                                     | v0.6.0  | Planned  |
 | [M6: Catalog and curation](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/7)                    | Supplier file ingestion, curation workflow, product master                         | v0.7.0  | Planned  |
@@ -84,9 +84,17 @@ Each milestone has a goal, deliverables and exit criteria. Milestones 0 to 2 are
 
 **Goal.** The network and identity foundations every workload depends on.
 
-**Deliverables.** Three-tier VPC across three zones. VPC endpoints and flow logs. Security groups by tier. KMS keys and the encryption standard. IAM foundations. Secrets and configuration management. A threat model and a review.
+**Delivered.** Twelve modules in all, ten of them new. The [network](../architecture/network.md): a three-tier VPC across three zones, endpoints with policies, flow logs and a security group per tier. The [encryption standard](../architecture/encryption.md) with four keys per environment. The [access model](../architecture/access-model.md): no users or access keys, a permission boundary on every workload role, a pipeline role that cannot escalate, and operator and audit roles that need multi-factor authentication. [Secrets and configuration](../architecture/secrets-and-configuration.md) by path, with secret values kept out of Terraform state. A [threat model](../architecture/security/threat-model.md) and a [baseline review](../architecture/security/baseline-review.md). Decision records 0010 and 0011.
 
-**Exit criteria.** Data subnets have no internet route. No policy has a wildcard action on a wildcard resource. Every finding from the review is fixed or tracked.
+**Exit criteria, as verified.** Data subnets have no internet route: a module test, and the smoke test reading the route table back. No policy has a wildcard action on a wildcard resource: `POL-IAM-1` on every plan, and tests that decode the rendered boundary and deploy policies. Every finding from the review is fixed or tracked: twelve findings, five fixed in this milestone and seven tracked in issues 57, 60, 61, 62, 64, 65 and 66.
+
+**What changed from the plan.**
+
+- The review found five weaknesses in work already merged, two of which could have let data leave the account or be destroyed. They were fixed before the milestone closed, and the review records them.
+- A gap in the policy checks was found and closed: a policy document that is unknown at plan time passed every check unread. Policies are now built from values known at plan, and `POL-IAM-5` warns when one is not.
+- Three kinds of check were added that the plan did not foresee: module tests that read rendered policy JSON, module apply tests against the emulator, and an audit of remote state for secret values.
+- The policy set grew from 13 rules to 26.
+- An account baseline module was added: account-wide public access block, default volume encryption and an access analyzer.
 
 ### M3: Data layer
 
