@@ -26,24 +26,44 @@ The first three are fast and need nothing running. They fail first. The fourth i
 
 ## On a pull request
 
+Each environment is rehearsed in a job of its own, with an emulator of its own. The three run in parallel.
+
 ```mermaid
 flowchart TB
-    pr([Pull request]) --> up[Start the emulator,<br/>create the state bucket]
-    up --> base[Apply the base branch<br/>to all three environments]
-    base --> plan[Plan the pull request<br/>against that state]
-    plan --> policy[Check each plan<br/>against the policies]
-    policy --> comment[Post the plan as a comment]
-    comment --> gate{Plan and policies pass?}
-    gate -- no --> fail([Fail])
-    gate -- yes --> apply[Apply the pull request]
-    apply --> smoke[Smoke test and state audit<br/>of each environment]
-    smoke --> destroy[Destroy everything,<br/>in reverse order]
-    destroy --> pass([Pass])
+    pr([Pull request]) --> d1
+    pr --> stg[Rehearse staging:<br/>the same steps]
+    pr --> prod[Rehearse production:<br/>the same steps]
+    pr --> mt[Module apply tests]
+
+    subgraph rehearsal[Rehearse dev]
+        direction TB
+        d1[Start the emulator,<br/>create the state bucket] --> d2[Apply the base branch]
+        d2 --> d3[Plan the pull request<br/>and check policies]
+        d3 --> d4{Pass?}
+        d4 -- yes --> d5[Apply, smoke test,<br/>state audit, data checks]
+        d5 --> d6[Lift protections<br/>and tear down]
+    end
+
+    d3 -- plan report --> comment[Join the three reports<br/>into one comment]
+    stg -- plan report --> comment
+    prod -- plan report --> comment
 ```
+
+| Job                      | Runs                                                   | Does                                                                                                                    |
+| ------------------------ | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| Rehearse `<environment>` | Three times, in parallel                               | Applies the base branch, plans the pull request, checks policies, applies, verifies and tears down, for one environment |
+| Module apply tests       | Once                                                   | `make test-emulator`. These tests use an account of their own and no environment                                        |
+| Plan comment             | Once, after the rehearsals, whether they passed or not | Joins the three plan reports into the single comment on the pull request                                                |
+
+**Why in parallel.** The first version did all three environments one after another in one job. When the data layer arrived that took more than twenty minutes, and every store added made it longer. A check that slow gets worked around. The environments are independent, so each now has its own job, and a pull request waits for the slowest one and not for the sum.
+
+**One comment, three jobs.** Each rehearsal uploads its plan report. The comment job joins them, in promotion order, and updates the one plan comment. If a job fails before it can plan, its environment appears in the table as having no report, so an environment cannot quietly drop out.
+
+**One failing environment does not cancel the others.** They are allowed to finish, so the comment shows the whole picture.
 
 **Why the base branch is applied first.** The emulator starts empty on every run. A plan against an empty environment always says "create everything", which tells a reviewer nothing and can never show a deletion. So the pipeline first applies `main` as it is, and then plans the pull request against that. The plan is then the real difference the pull request makes: additions, changes, replacements and deletions. This is also what lets the protected-resource policy (POL-PROTECT-1) see a database being deleted.
 
-**Why the apply is rehearsed.** A plan can be valid and still fail to apply: an ordering problem, a name that is too long, a value the API rejects. The pull request is applied to all three environments, each is smoke tested by asking the AWS API directly, and then everything is destroyed in reverse order. A change that cannot be cleanly removed fails here.
+**Why the apply is rehearsed.** A plan can be valid and still fail to apply: an ordering problem, a name that is too long, a value the API rejects. The pull request is applied to each environment, which is then smoke tested by asking the AWS API directly, has its state audited and its stores used, and is torn down in reverse order. A change that cannot be cleanly removed fails here.
 
 ## On merge
 
@@ -56,7 +76,7 @@ flowchart LR
     sp --> done([Summary on the run])
 ```
 
-Environments are applied in promotion order, one at a time. Each must pass its smoke test before the next begins, so a problem stops in `dev`.
+Environments are applied in promotion order, one at a time, in a single job. Each must pass its checks before the next begins, so a problem stops in `dev`. This is deliberately not parallel: on merge the order is the point.
 
 A run on `main` is never cancelled by a newer one. Cancelling an apply halfway is how state and reality come apart.
 
