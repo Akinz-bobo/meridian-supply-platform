@@ -23,8 +23,18 @@ variable "vpc_cidr_block" {
   }
 }
 
+variable "account_id" {
+  description = "Account the VPC is in. Endpoint policies admit this account's principals, and gateway endpoints reach this account's resources only."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[0-9]{12}$", var.account_id))
+    error_message = "An AWS account id is 12 digits."
+  }
+}
+
 variable "route_table_ids" {
-  description = "Route tables that get routes to the gateway endpoints. Pass the private and data route tables."
+  description = "Route tables that get routes to the gateway endpoints. Pass the private route tables."
   type        = list(string)
 }
 
