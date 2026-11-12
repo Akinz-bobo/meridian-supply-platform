@@ -335,6 +335,12 @@ for consumer in inventory-product-published inventory-goods-received budget-good
   check 'only its own rule on the bus can deliver to it' jq -e --arg r "rule/$bus/$queue" \
     '.Policy | fromjson | any(.Statement[]; .Effect == "Allow" and .Principal.Service == "events.amazonaws.com"
       and (.Condition.ArnEquals["aws:SourceArn"] | endswith($r)))' <<<"$attributes"
+  check 'an event the bus cannot deliver is parked in its dead-letter queue' jq -e --arg d "$queue-dlq" \
+    '.Targets[0] | (.DeadLetterConfig.Arn | endswith(":" + $d)) and .RetryPolicy.MaximumEventAgeInSeconds <= 86400' \
+    <<<"$(as_account "$account" aws events list-targets-by-rule --rule "$queue" --event-bus-name "$bus" --output json 2>/dev/null || echo '{}')"
+  check 'an alarm fires when its consumer falls behind' jq -e --arg q "$queue" \
+    '.MetricAlarms[0] | .MetricName == "ApproximateAgeOfOldestMessage" and any(.Dimensions[]; .Name == "QueueName" and .Value == $q)' \
+    <<<"$(as_account "$account" aws cloudwatch describe-alarms --alarm-names "$queue-backlog" --output json 2>/dev/null || echo '{}')"
   check 'an alarm watches its dead-letter queue' jq -e --arg d "$queue-dlq" \
     '.MetricAlarms[0] | .Threshold == 0 and any(.Dimensions[]; .Name == "QueueName" and .Value == $d)' \
     <<<"$(as_account "$account" aws cloudwatch describe-alarms --alarm-names "$queue-dlq-not-empty" --output json 2>/dev/null || echo '{}')"
@@ -356,9 +362,9 @@ check 'only CloudWatch, for this account, may publish to the alarms topic' jq -e
     | length == 1 and .[0].Principal.Service == "cloudwatch.amazonaws.com"
       and .[0].Condition.StringEquals["aws:SourceAccount"] == $a' \
   <<<"$(as_account "$account" aws sns get-topic-attributes --topic-arn "arn:aws:sns:$region:$account:meridian-$environment-alarms" --output json 2>/dev/null || echo '{}')"
-check 'every dead-letter queue alarm notifies the alarms topic' jq -e --arg t "arn:aws:sns:$region:$account:meridian-$environment-alarms" \
-  '[.MetricAlarms[] | select(.AlarmName | endswith("-dlq-not-empty"))]
-    | length >= 3 and all(.AlarmActions == [$t] and .OKActions == [$t])' \
+check 'every queue alarm notifies the alarms topic' jq -e --arg t "arn:aws:sns:$region:$account:meridian-$environment-alarms" \
+  '[.MetricAlarms[] | select(.AlarmName | test("-(dlq-not-empty|backlog)$"))]
+    | length >= 6 and all(.AlarmActions == [$t] and .OKActions == [$t])' \
   <<<"$(as_account "$account" aws cloudwatch describe-alarms --alarm-name-prefix "meridian-$environment-" --output json 2>/dev/null || echo '{}')"
 check 'a rule sends notification events to the notifications topic' jq -e \
   '.Targets | length == 1 and (.[0].Arn | endswith("-notifications")) and .[0].InputPath == "$.detail"' \
