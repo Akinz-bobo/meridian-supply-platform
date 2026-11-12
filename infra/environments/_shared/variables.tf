@@ -1,5 +1,13 @@
+# tflint-ignore-file: terraform_unused_declarations
+#
 # Shared by every layer of every environment through a symbolic link. Values
 # come from the environment's env.tfvars.
+#
+# Every layer declares every variable, because they all read the same
+# env.tfvars and Terraform warns about a value with no declaration. A layer
+# does not use all of them, so the unused declaration rule is switched off
+# for this file only, by the annotation on the first line, which is where
+# the linter requires it. Unused locals and data sources are still reported.
 
 variable "project" {
   description = "Short name of the platform."
