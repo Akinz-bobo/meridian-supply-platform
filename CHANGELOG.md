@@ -4,6 +4,10 @@ Notable changes, newest first. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+### Added
+
+- Messaging: a `messaging` state layer, a tested `event-bus` module with an archive, an event log and a publish policy per producer, and the event envelope as JSON Schema with a dependency-free validator and `make contract-test`.
+
 ## [0.4.0] - 2026-11-12
 
 Milestone 3: data layer. The stores the services will use, each encrypted, protected against deletion and exercised through its API on every pull request, with no stored credential anywhere in the layer.
