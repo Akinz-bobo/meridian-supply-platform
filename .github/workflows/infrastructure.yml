@@ -114,6 +114,7 @@ jobs:
           make state-audit ENV="$ENVIRONMENT"
           make data-check ENV="$ENVIRONMENT"
           make event-check ENV="$ENVIRONMENT"
+          make compute-check ENV="$ENVIRONMENT"
 
       - name: Rehearse the teardown
         run: make teardown ENV="$ENVIRONMENT"
@@ -220,7 +221,8 @@ jobs:
             make state-audit ENV="$environment"
             make data-check ENV="$environment"
             make event-check ENV="$environment"
-            echo "| \`$environment\` | applied, smoke test, data checks and event check passed, no secrets in state |" >> "$GITHUB_STEP_SUMMARY"
+            make compute-check ENV="$environment"
+            echo "| \`$environment\` | applied, smoke test, data, event and compute checks passed, no secrets in state |" >> "$GITHUB_STEP_SUMMARY"
           done
 
       - name: Show emulator logs on failure
