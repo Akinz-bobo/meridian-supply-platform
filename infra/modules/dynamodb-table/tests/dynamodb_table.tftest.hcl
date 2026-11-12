@@ -334,3 +334,16 @@ run "rejects_an_unknown_classification" {
 
   expect_failures = [var.data_classification]
 }
+
+run "puts_store_tags_on_the_table" {
+  command = plan
+
+  variables {
+    store_tags = { Backup = "daily" }
+  }
+
+  assert {
+    condition     = aws_dynamodb_table.this.tags["Backup"] == "daily" && aws_dynamodb_table.this.tags["DataClassification"] == "internal"
+    error_message = "A store tag must reach the table, alongside its classification."
+  }
+}

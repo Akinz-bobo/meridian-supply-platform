@@ -265,3 +265,31 @@ run "rejects_logging_every_statement" {
 
   expect_failures = [var.slow_statement_milliseconds]
 }
+
+run "puts_store_tags_on_the_instance_and_nowhere_else" {
+  command = plan
+
+  variables {
+    store_tags = { Backup = "daily" }
+  }
+
+  assert {
+    condition     = aws_db_instance.this.tags["Backup"] == "daily"
+    error_message = "A store tag must reach the database instance."
+  }
+
+  assert {
+    condition     = !contains(keys(aws_cloudwatch_log_group.postgresql.tags), "Backup") && !contains(keys(aws_db_subnet_group.this.tags), "Backup") && !contains(keys(aws_db_parameter_group.this.tags), "Backup")
+    error_message = "A store tag must not reach the log group, subnet group or parameter group. A backup plan that selects by tag would try to back them up."
+  }
+}
+
+run "rejects_a_classification_given_as_a_store_tag" {
+  command = plan
+
+  variables {
+    store_tags = { DataClassification = "public" }
+  }
+
+  expect_failures = [var.store_tags]
+}

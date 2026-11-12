@@ -98,6 +98,7 @@ module "postgres_database" {
 | performance\_insights | Record database load by statement, wait and user, kept for 7 days and encrypted with the data key. | `bool` | `true` | no |
 | skip\_final\_snapshot | Delete the database without taking a last snapshot. Turn on only in an environment whose data is disposable. | `bool` | `false` | no |
 | slow\_statement\_milliseconds | Log statements that take longer than this. | `number` | `1000` | no |
+| store\_tags | Extra tags for the database instance only, and not for the resources around it. Use it for the tag that opts the store in to a backup plan. | `map(string)` | `{}` | no |
 
 ## Outputs
 

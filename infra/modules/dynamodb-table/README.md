@@ -101,6 +101,7 @@ output "write_policy_json" {
 | global\_secondary\_indexes | Indexes that give the table further access patterns. projection\_type is ALL, KEYS\_ONLY or INCLUDE, and INCLUDE needs non\_key\_attributes. | <pre>list(object({<br/>    name               = string<br/>    hash_key           = string<br/>    range_key          = optional(string)<br/>    projection_type    = optional(string, "ALL")<br/>    non_key_attributes = optional(list(string), [])<br/>  }))</pre> | `[]` | no |
 | provisioned\_capacity | Pay for a fixed range of capacity that autoscaling moves within, for the table and every index. With null the table is billed per request, which suits unpredictable or low traffic. | <pre>object({<br/>    read_min           = number<br/>    read_max           = number<br/>    write_min          = number<br/>    write_max          = number<br/>    target_utilization = optional(number, 70)<br/>  })</pre> | `null` | no |
 | range\_key | Name of the sort key attribute. With null the table has a partition key only. | `string` | `null` | no |
+| store\_tags | Extra tags for the table only, and not for the resources around it. Use it for the tag that opts the store in to a backup plan. | `map(string)` | `{}` | no |
 | stream\_view\_type | Stream item changes, with this content: KEYS\_ONLY, NEW\_IMAGE, OLD\_IMAGE or NEW\_AND\_OLD\_IMAGES. With null there is no stream. | `string` | `null` | no |
 | ttl\_attribute | Attribute holding the time, in seconds since the epoch, after which an item is deleted. With null, items never expire. | `string` | `null` | no |
 

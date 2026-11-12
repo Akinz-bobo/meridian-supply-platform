@@ -12,7 +12,10 @@ locals {
   # policies below are known at plan time and can be policy checked.
   table_arn = "arn:aws:dynamodb:${data.aws_region.current.region}:${var.account_id}:table/${var.name}"
 
-  tags = merge(var.tags, { DataClassification = var.data_classification })
+  # Tags for the store itself and not for the resources around it. The
+  # classification and anything in store_tags, such as the tag that opts a
+  # store in to backups, describe the data and belong on what holds it.
+  tags = merge(var.tags, var.store_tags, { DataClassification = var.data_classification })
 
   provisioned = var.provisioned_capacity != null
   indexes     = { for index in var.global_secondary_indexes : index.name => index }

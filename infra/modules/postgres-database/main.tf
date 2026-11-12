@@ -10,7 +10,10 @@
 # is deleted, and deletion protection.
 
 locals {
-  tags = merge(var.tags, { DataClassification = var.data_classification })
+  # Tags for the store itself and not for the resources around it. The
+  # classification and anything in store_tags, such as the tag that opts a
+  # store in to backups, describe the data and belong on what holds it.
+  tags = merge(var.tags, var.store_tags, { DataClassification = var.data_classification })
 
   # RDS decides this name. It cannot follow the platform's path convention.
   log_group_name = "/aws/rds/instance/${var.name}/postgresql"
