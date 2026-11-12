@@ -12,6 +12,10 @@ Notable changes, newest first. The format follows [Keep a Changelog](https://kee
 - Services layer: a fifth state layer that deploys services onto the platform, with the sample service running on ECS in every environment behind the load balancer.
 - Compute check: `make compute-check` calls the load balancer over TLS and verifies routing, the deployed image and that no credential is given away, in the pipeline.
 
+### Fixed
+
+- The apply on merge runs one job per environment, in order and never together, so the three no longer share one time limit they had nearly reached.
+
 ## [0.5.0] - 2026-11-12
 
 Milestone 4: messaging and events. The bus, consumer queues with dead-letter queues, topics and the movement stream, an event contract with a validator, and a check that follows real events through the environment on every pull request.
