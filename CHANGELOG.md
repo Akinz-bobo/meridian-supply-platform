@@ -14,6 +14,10 @@ Notable changes, newest first. The format follows [Keep a Changelog](https://kee
 - Secrets and configuration: a tested `service-config` module that keeps secret values out of Terraform state with ephemeral and write-only arguments, apply tests against the emulator (`make test-emulator`), a state audit (`make state-audit`) in the pipeline, the secrets and configuration convention, and policy rules POL-SECRET-1 to POL-SECRET-3.
 - A threat model for the network and identity layers, and a baseline review of every milestone 2 module that produced twelve findings, each fixed or tracked in an issue.
 
+### Fixed
+
+- Review fixes for the network: every VPC endpoint has a policy limited to this account, the flow logs module requires a customer managed key, and the data tier is no longer routed to gateway endpoints it could not use.
+
 ## [0.2.0] - 2026-11-11
 
 Milestone 1: infrastructure foundation. The first Terraform, and everything needed to change infrastructure safely: a local emulator, a layout for modules and environments, remote state, static analysis, policy as code and a pipeline.
