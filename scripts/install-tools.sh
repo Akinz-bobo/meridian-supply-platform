@@ -13,6 +13,8 @@ TFLINT_VERSION=0.66.0
 TRIVY_VERSION=0.76.2
 CONFTEST_VERSION=0.71.1
 TERRAFORM_DOCS_VERSION=0.24.0
+KUBECTL_VERSION=1.36.6
+HELM_VERSION=4.3.1
 
 BIN_DIR="${BIN_DIR:-$HOME/.local/bin}"
 mkdir -p "$BIN_DIR"
@@ -40,14 +42,20 @@ fetch() {
     { echo "Checksum mismatch for $file" >&2; exit 1; }
 }
 
-# installed <binary> <version>: true when that version is already in BIN_DIR.
+# installed <binary> <version> [version command...]: true when that version
+# is already in BIN_DIR.
+# Most tools print their version with --version. kubectl and helm use a
+# subcommand, passed as the remaining arguments.
 installed() {
   [ -x "$BIN_DIR/$1" ] || return 1
+  local binary=$1 wanted=$2
+  shift 2
+  [ $# -gt 0 ] || set -- --version
   # Capture first: piping straight into `grep --quiet` can close the pipe
   # early and make the tool exit non-zero under pipefail.
   local version
-  version="$("$BIN_DIR/$1" --version 2>/dev/null || true)"
-  grep --quiet --fixed-strings "$2" <<<"$version"
+  version="$("$BIN_DIR/$binary" "$@" 2>/dev/null || true)"
+  grep --quiet --fixed-strings "$wanted" <<<"$version"
 }
 
 install_tflint() {
@@ -92,8 +100,29 @@ install_terraform_docs() {
   echo "terraform-docs $TERRAFORM_DOCS_VERSION installed"
 }
 
+install_kubectl() {
+  if installed kubectl "v$KUBECTL_VERSION" version --client; then echo "kubectl $KUBECTL_VERSION already installed"; return; fi
+  local base="https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/${os}/${arch}"
+  curl --fail --silent --show-error --location --retry 3 --output "$work/kubectl" "$base/kubectl"
+  curl --fail --silent --show-error --location --retry 3 --output "$work/kubectl.sha256" "$base/kubectl.sha256"
+  # The published file holds the digest alone, with no file name.
+  (cd "$work" && echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check --status) ||
+    { echo 'Checksum mismatch for kubectl' >&2; exit 1; }
+  install -m 0755 "$work/kubectl" "$BIN_DIR/kubectl"
+  echo "kubectl $KUBECTL_VERSION installed"
+}
+
+install_helm() {
+  if installed helm "v$HELM_VERSION" version; then echo "helm $HELM_VERSION already installed"; return; fi
+  local file="helm-v${HELM_VERSION}-${os}-${arch}.tar.gz"
+  fetch "https://get.helm.sh" "$file" "$file.sha256sum"
+  tar --extract --gzip --file "$work/$file" --directory "$work" "${os}-${arch}/helm"
+  install -m 0755 "$work/${os}-${arch}/helm" "$BIN_DIR/helm"
+  echo "helm $HELM_VERSION installed"
+}
+
 tools=("$@")
-[ ${#tools[@]} -gt 0 ] || tools=(tflint trivy conftest terraform-docs)
+[ ${#tools[@]} -gt 0 ] || tools=(tflint trivy conftest terraform-docs kubectl helm)
 
 for tool in "${tools[@]}"; do
   case "$tool" in
@@ -101,6 +130,8 @@ for tool in "${tools[@]}"; do
     trivy) install_trivy ;;
     conftest) install_conftest ;;
     terraform-docs) install_terraform_docs ;;
+    kubectl) install_kubectl ;;
+    helm) install_helm ;;
     *) echo "Unknown tool: $tool" >&2; exit 1 ;;
   esac
 done
