@@ -11,6 +11,7 @@ This document grows through milestone 5. It covers the layers, images, the sampl
 - [The way in](#the-way-in)
 - [ECS](#ecs)
 - [Deploying](#deploying)
+- [Checking the workloads](#checking-the-workloads)
 - [How it is enforced](#how-it-is-enforced)
 - [What the emulator does not prove](#what-the-emulator-does-not-prove)
 
@@ -153,6 +154,24 @@ The parameter is the release pointer. Terraform creates it and ignores its value
 | See what is running | Read the parameter, or `make smoke`, which checks the task definition against it                                  |
 
 A change that touches only documentation produces the same tag, pushes nothing and plans nothing.
+
+## Checking the workloads
+
+`make compute-check ENV=<env>` runs [`scripts/compute-check.sh`](../../scripts/compute-check.sh). It makes real requests to an applied environment, as a client would.
+
+| Check                                                                                                   | What it shows                     |
+| ------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| The load balancer answers over TLS, and plain HTTP to the same port is refused                          | TLS only                          |
+| A path no rule matches gets the load balancer's own 404                                                 | Nothing is served by default      |
+| The service's path is not that 404                                                                      | Its rule exists and matches       |
+| The answer comes from the sample service, in this environment, at the version the release pointer names | What was deployed is what answers |
+| Its health endpoint answers, and a path it does not have is not found                                   | The service behaves               |
+| `/identity` names how it gets credentials, and contains no key, secret or token                         | Nothing is given away             |
+| The running task's image is the one the release pointer names                                           | The pointer is the truth          |
+
+It runs in the pipeline after every apply, in every environment.
+
+**One hop is checked in parts on the emulator.** The emulator's load balancer forwards to a target group only in its default account, and every environment here has its own. There, a request for `/sample/` matches the rule and then fails. The check sees that, reports the end-to-end line as skipped with the reason, and checks the remaining hop directly: the address the load balancer holds as its healthy target. Wherever the load balancer does forward, the end-to-end line runs and the detour is not taken. A skip is printed and counted. It is never silently passed.
 
 ## How it is enforced
 

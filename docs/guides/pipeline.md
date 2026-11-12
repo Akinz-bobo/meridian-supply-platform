@@ -40,7 +40,7 @@ flowchart TB
         d1[Start the emulator,<br/>create the state bucket] --> d2[Apply the base branch]
         d2 --> d3[Plan the pull request<br/>and check policies]
         d3 --> d4{Pass?}
-        d4 -- yes --> d5[Apply, smoke test,<br/>state audit,<br/>data checks, event check]
+        d4 -- yes --> d5[Apply, smoke test,<br/>state audit,<br/>data, event and<br/>compute checks]
         d5 --> d6[Lift protections<br/>and tear down]
     end
 
@@ -109,6 +109,7 @@ make smoke ENV=dev            # ask the API whether it looks right
 make state-audit ENV=dev      # check that no secret value is in the remote state
 make data-check ENV=dev       # use the stores the way a service would
 make event-check ENV=dev      # send events through and follow them
+make compute-check ENV=dev    # call the workloads as a client would
 make test-emulator            # module apply tests
 make report                   # plan all environments, check policies, write plan-report.md
 make destroy-all ENV=dev      # every layer, in reverse
@@ -203,6 +204,7 @@ Split such a change in two: publish the parameter first, then consume it. That i
 | Cache access check    | The access rule of a cache user lets a client do something it should not, or stops something it needs                                              | Run `make data-check ENV=<env>` locally. It needs Docker. The failing line says which command. Change the access string in the `data` layer                                                                                               |
 | Backup check          | A store lost its backup tag, a resource that is not a store gained it, or the backup role is not accepted                                          | Run `make data-check ENV=<env>` locally. The failing line names the resource                                                                                                                                                              |
 | Event check           | An event did not reach a consumer it should, reached one it should not, was not dead-lettered or redriven, or the stream lost order                | Run `make event-check ENV=<env>` locally. The failing line says which promise broke. See [messaging](../architecture/messaging.md#checking-the-flow)                                                                                      |
+| Compute check         | The load balancer did not answer over TLS, served something by default, or the service that answered is not the image that was deployed            | Run `make compute-check ENV=<env>` locally. A line marked `skip` is not a failure: it names a hop the emulator cannot do. See [compute](../architecture/compute.md#checking-the-workloads)                                                |
 | Module apply tests    | A module cannot be created, changed or destroyed in the emulator                                                                                   | Run `make test-emulator` locally                                                                                                                                                                                                          |
 | Rehearse the teardown | Something cannot be destroyed: a dependency Terraform does not know about, or a deletion protection that does not follow the `disposable` variable | Add the missing dependency. For a new protected store, make its protections follow `var.disposable` in the layer, as the existing stores do                                                                                               |
 

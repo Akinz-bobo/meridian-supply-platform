@@ -10,6 +10,7 @@ Notable changes, newest first. The format follows [Keep a Changelog](https://kee
 - Load balancing: a tested `load-balancer` module with a TLS-only listener and a default refusal, a certificate and a load balancer in every environment.
 - ECS: tested `ecs-cluster` and `ecs-service` modules, a cluster in every environment, and a release pointer per service that the pipeline sets when it pushes an image.
 - Services layer: a fifth state layer that deploys services onto the platform, with the sample service running on ECS in every environment behind the load balancer.
+- Compute check: `make compute-check` calls the load balancer over TLS and verifies routing, the deployed image and that no credential is given away, in the pipeline.
 
 ## [0.5.0] - 2026-11-12
 

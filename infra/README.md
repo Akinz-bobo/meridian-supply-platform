@@ -46,6 +46,7 @@ make smoke                       # ask the AWS API whether the environment looks
 make state-audit                 # fail if the remote state holds a secret value
 make data-check                  # use the stores the way a service would: key design, SQL, cache access rule
 make event-check                 # send events through the environment and follow them
+make compute-check               # call the workloads of the environment as a client would
 make image SERVICE=sample        # build a service and push its image to the environment's repository
 make service-test                # unit tests of the services
 make policy                      # plan a layer and check it against the policies
