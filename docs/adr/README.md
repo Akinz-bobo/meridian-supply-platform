@@ -8,15 +8,16 @@ Start from the [template](template.md).
 
 ## Index
 
-| Number                                                   | Decision                                                                        | Status   |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------- | -------- |
-| [0001](0001-record-architecture-decisions.md)            | Record architecture decisions                                                   | Accepted |
-| [0002](0002-develop-against-an-aws-emulator.md)          | Develop and test against an AWS emulator                                        | Accepted |
-| [0003](0003-terraform-for-infrastructure.md)             | Use Terraform for infrastructure as code                                        | Accepted |
-| [0004](0004-single-repository.md)                        | Keep infrastructure, services and documentation in one repository               | Accepted |
-| [0005](0005-compute-model-per-workload.md)               | Choose the compute model per workload by a stated rule                          | Accepted |
-| [0006](0006-event-backbone-and-messaging-conventions.md) | Use EventBridge with a queue per consumer, and one set of messaging conventions | Accepted |
-| [0007](0007-environments-and-account-isolation.md)       | Three environments, one AWS account each                                        | Accepted |
-| [0008](0008-layered-state-per-environment.md)            | Split each environment's state into layers                                      | Accepted |
-| [0009](0009-remote-state-in-s3-with-native-locking.md)   | Keep state in one S3 bucket with native locking                                 | Accepted |
-| [0010](0010-one-encryption-key-per-data-class.md)        | One encryption key per data class                                               | Accepted |
+| Number                                                           | Decision                                                                        | Status   |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------- | -------- |
+| [0001](0001-record-architecture-decisions.md)                    | Record architecture decisions                                                   | Accepted |
+| [0002](0002-develop-against-an-aws-emulator.md)                  | Develop and test against an AWS emulator                                        | Accepted |
+| [0003](0003-terraform-for-infrastructure.md)                     | Use Terraform for infrastructure as code                                        | Accepted |
+| [0004](0004-single-repository.md)                                | Keep infrastructure, services and documentation in one repository               | Accepted |
+| [0005](0005-compute-model-per-workload.md)                       | Choose the compute model per workload by a stated rule                          | Accepted |
+| [0006](0006-event-backbone-and-messaging-conventions.md)         | Use EventBridge with a queue per consumer, and one set of messaging conventions | Accepted |
+| [0007](0007-environments-and-account-isolation.md)               | Three environments, one AWS account each                                        | Accepted |
+| [0008](0008-layered-state-per-environment.md)                    | Split each environment's state into layers                                      | Accepted |
+| [0009](0009-remote-state-in-s3-with-native-locking.md)           | Keep state in one S3 bucket with native locking                                 | Accepted |
+| [0010](0010-one-encryption-key-per-data-class.md)                | One encryption key per data class                                               | Accepted |
+| [0011](0011-roles-not-users-and-a-boundary-on-every-workload.md) | Roles, not users, and a boundary on every workload role                         | Accepted |
