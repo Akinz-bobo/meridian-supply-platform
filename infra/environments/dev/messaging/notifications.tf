@@ -21,6 +21,10 @@ module "alarms_topic" {
 
   kms_key_arn         = local.facts.messaging_key_arn
   publishing_services = ["cloudwatch.amazonaws.com"]
+
+  # Who is told. Set per environment in env.tfvars. With none, alarms are
+  # raised and reach nobody, which is tracked as a review finding.
+  subscriptions = var.alarm_subscriptions
 }
 
 module "notifications_context" {
