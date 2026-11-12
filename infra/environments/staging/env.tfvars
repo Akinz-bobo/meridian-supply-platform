@@ -15,3 +15,8 @@ availability_zones = ["eu-west-1a", "eu-west-1b", "eu-west-1c"]
 
 github_environment = "staging"
 state_key_prefix   = "staging"
+
+# Data stores. Staging has the structure of production at a smaller size.
+
+database_instance_class        = "db.t4g.small"
+database_backup_retention_days = 7

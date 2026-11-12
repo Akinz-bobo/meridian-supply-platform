@@ -26,3 +26,10 @@ state_key_prefix   = "dev"
 # Dev is rebuilt freely. This lets the pipeline delete encryption keys there,
 # which staging and production do not allow.
 disposable = true
+
+# Data stores. Dev runs the smallest instance, in one zone, with a day of
+# backups. See docs/architecture/data.md.
+
+database_instance_class        = "db.t4g.micro"
+database_multi_az              = false
+database_backup_retention_days = 1
