@@ -2,13 +2,14 @@
 
 How services tell each other what happened: the bus, the contract every event follows, and who is allowed to say what. The reasoning is in [decision record 0006](../adr/0006-event-backbone-and-messaging-conventions.md), and the list of events is the [event catalogue](events.md).
 
-This document grows through milestone 4. It covers the bus, the contract and consumer queues. Notification topics and the movement stream are added as they are built.
+This document grows through milestone 4. It covers the bus, the contract, consumer queues and notification topics. The movement stream is added when it is built.
 
 - [The shape of it](#the-shape-of-it)
 - [The bus](#the-bus)
 - [The contract](#the-contract)
 - [Who may publish what](#who-may-publish-what)
 - [Consumer queues](#consumer-queues)
+- [Topics](#topics)
 - [The messaging layer](#the-messaging-layer)
 - [How it is enforced](#how-it-is-enforced)
 - [What the emulator does not prove](#what-the-emulator-does-not-prove)
@@ -101,6 +102,29 @@ Two of them take the same event. That is the point of the design: procurement pu
 A queue is added to `messaging/consumers.tf` when its consumer is about to be built. Each queue's URL is published under the consumer's own path, `/meridian/<env>/<service>/queues/<event>-url`.
 
 **What a consumer must do.** Delivery is at least once, so a consumer records each event `id` with its effect and ignores one it has seen. It deletes a message only after its effect is committed. It lets a message it cannot process fail, so that the message reaches the dead-letter queue, and does not swallow the error.
+
+## Topics
+
+Two per environment, built by the [`notification-topic` module](../../infra/modules/notification-topic/README.md).
+
+```mermaid
+flowchart LR
+    alarms[CloudWatch alarms<br/>dead-letter queues, and later every alarm] --> at[(Alarms topic)]
+    bus{{Event bus}} -- "rule: events for people" --> nt[(Notifications topic)]
+    at --> oncall[On-call: chat, pager, email]
+    nt --> people[Buyers, controllers, warehouse leads]
+```
+
+| Topic                          | Receives                                                                                                                                                                                         | From              |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------- |
+| `meridian-<env>-alarms`        | Every alarm state change, to alarm and back to OK                                                                                                                                                | CloudWatch        |
+| `meridian-<env>-notifications` | The events that exist to tell a person something: `ApprovalRequested`, `BatchExpired`, `BatchRecalled`, `BatchShortDated`, `BudgetExceeded`, `ReplenishmentProposed`, `StockDiscrepancyDetected` | A rule on the bus |
+
+**Why notifications go through a topic and not a queue.** A queue has one consumer that must process every message. A topic fans out to whoever is subscribed and does not care whether anyone is. An approval request should reach a controller's inbox and the team's chat, and adding a third destination should not involve the budget service.
+
+**Subscriptions are not in this repository.** Who is on call, and which chat channel, differ by environment and change without a deployment. The module takes them as an input, and an environment adds them in its own values. An environment with no subscriptions still has working topics: the messages go nowhere.
+
+**The key policy.** CloudWatch and EventBridge publish as services, so both are named in the topic policy and, in the foundation layer, in the messaging key's policy. Without the second, a message is refused at encryption and the alarm silently notifies nobody. The baseline review of this milestone checks for exactly that.
 
 ## The messaging layer
 
