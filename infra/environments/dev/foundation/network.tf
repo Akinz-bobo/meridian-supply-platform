@@ -52,21 +52,36 @@ module "vpc_flow_logs" {
   retention_in_days = var.log_retention_days
 }
 
+# One security group per tier. Workload and data store modules attach these
+# rather than inventing their own, so the allowed paths are defined once.
+module "tier_security_groups" {
+  source = "../../../modules/tier-security-groups"
+
+  name = module.network_context.prefix
+  tags = module.network_context.tags
+
+  vpc_id         = module.vpc.vpc_id
+  vpc_cidr_block = module.vpc.cidr_block
+}
+
 # Published for other layers and for services. A consumer reads the path
 # /<project>/<environment>/network and needs no access to this layer's state.
 locals {
   network_parameters = {
-    "vpc-id"                  = { type = "String", value = module.vpc.vpc_id }
-    "vpc-cidr"                = { type = "String", value = module.vpc.cidr_block }
-    "availability-zones"      = { type = "StringList", value = join(",", module.vpc.availability_zones) }
-    "public-subnet-ids"       = { type = "StringList", value = join(",", module.vpc.public_subnet_ids) }
-    "private-subnet-ids"      = { type = "StringList", value = join(",", module.vpc.private_subnet_ids) }
-    "data-subnet-ids"         = { type = "StringList", value = join(",", module.vpc.data_subnet_ids) }
-    "private-route-table-ids" = { type = "StringList", value = join(",", module.vpc.private_route_table_ids) }
-    "data-route-table-id"     = { type = "String", value = module.vpc.data_route_table_id }
-    "flow-log-group"          = { type = "String", value = module.vpc_flow_logs.log_group_name }
-    "s3-prefix-list-id"       = { type = "String", value = module.vpc_endpoints.s3_prefix_list_id }
-    "dynamodb-prefix-list-id" = { type = "String", value = module.vpc_endpoints.dynamodb_prefix_list_id }
+    "vpc-id"                          = { type = "String", value = module.vpc.vpc_id }
+    "vpc-cidr"                        = { type = "String", value = module.vpc.cidr_block }
+    "availability-zones"              = { type = "StringList", value = join(",", module.vpc.availability_zones) }
+    "public-subnet-ids"               = { type = "StringList", value = join(",", module.vpc.public_subnet_ids) }
+    "private-subnet-ids"              = { type = "StringList", value = join(",", module.vpc.private_subnet_ids) }
+    "data-subnet-ids"                 = { type = "StringList", value = join(",", module.vpc.data_subnet_ids) }
+    "private-route-table-ids"         = { type = "StringList", value = join(",", module.vpc.private_route_table_ids) }
+    "data-route-table-id"             = { type = "String", value = module.vpc.data_route_table_id }
+    "flow-log-group"                  = { type = "String", value = module.vpc_flow_logs.log_group_name }
+    "s3-prefix-list-id"               = { type = "String", value = module.vpc_endpoints.s3_prefix_list_id }
+    "dynamodb-prefix-list-id"         = { type = "String", value = module.vpc_endpoints.dynamodb_prefix_list_id }
+    "load-balancer-security-group-id" = { type = "String", value = module.tier_security_groups.load_balancer_security_group_id }
+    "application-security-group-id"   = { type = "String", value = module.tier_security_groups.application_security_group_id }
+    "data-security-group-id"          = { type = "String", value = module.tier_security_groups.data_security_group_id }
   }
 }
 
