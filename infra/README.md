@@ -121,6 +121,7 @@ This creates a skeleton that meets the [module standards](../docs/architecture/m
 | [data-bucket](modules/data-bucket/README.md)                   | A private, encrypted, versioned bucket with lifecycle rules and access policies       |
 | [dynamodb-table](modules/dynamodb-table/README.md)             | A table with encryption, point-in-time recovery, indexes, streams and access policies |
 | [event-bus](modules/event-bus/README.md)                       | The event bus with its archive, event log and a publish policy per producer           |
+| [event-consumer-queue](modules/event-consumer-queue/README.md) | A consumer's queue, dead-letter queue, rule on the bus and alarm                      |
 | [kms-key](modules/kms-key/README.md)                           | A rotating encryption key with an alias and a key policy that delegates to IAM        |
 | [permission-boundary](modules/permission-boundary/README.md)   | The limit on what any workload role in an environment can be granted                  |
 | [postgres-database](modules/postgres-database/README.md)       | PostgreSQL on RDS with managed credentials, enforced TLS, backups and logs            |
