@@ -29,6 +29,19 @@ jobs:
       - name: Test the contracts and their validator
         run: make contract-test
 
+  services:
+    name: Service tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run the unit tests of every service
+        run: make service-test
+      - name: Build every service image
+        run: |
+          for service in services/*/; do
+            docker build --quiet "$service"
+          done
+
   emulator:
     name: Emulator boots
     runs-on: ubuntu-latest

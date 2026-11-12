@@ -111,6 +111,7 @@ jobs:
           echo "::group::apply $ENVIRONMENT"
           make apply-all ENV="$ENVIRONMENT"
           echo "::endgroup::"
+          make image ENV="$ENVIRONMENT" SERVICE=sample
           make smoke ENV="$ENVIRONMENT"
           make state-audit ENV="$ENVIRONMENT"
           make data-check ENV="$ENVIRONMENT"
@@ -217,6 +218,7 @@ jobs:
             echo "::group::apply $environment"
             make apply-all ENV="$environment"
             echo "::endgroup::"
+            make image ENV="$environment" SERVICE=sample
             make smoke ENV="$environment"
             make state-audit ENV="$environment"
             make data-check ENV="$environment"
