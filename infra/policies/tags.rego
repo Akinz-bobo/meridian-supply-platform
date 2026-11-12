@@ -53,3 +53,29 @@ warn contains msg if {
 	plan.unknown(rc, "tags_all")
 	msg := sprintf("POL-TAG-1: tags on %s are not known until apply and were not checked", [rc.address])
 }
+
+# Stores that hold data. Each one says how sensitive its contents are, which
+# decides who may read it, how long it is kept and whether it is backed up.
+data_stores := {
+	"aws_db_instance",
+	"aws_dynamodb_table",
+	"aws_efs_file_system",
+	"aws_elasticache_replication_group",
+	"aws_kinesis_stream",
+	"aws_rds_cluster",
+	"aws_s3_bucket",
+}
+
+classifications := {"public", "internal", "confidential", "restricted"}
+
+deny contains msg if {
+	some rc in plan.changing
+	rc.type in data_stores
+	not plan.unknown(rc, "tags_all")
+	value := object.get(rc.change.after, ["tags_all", "DataClassification"], "")
+	not value in classifications
+	msg := sprintf(
+		"POL-TAG-4: %s holds data and has DataClassification=%q. It must be one of: %s",
+		[rc.address, value, concat(", ", sort(classifications))],
+	)
+}
