@@ -67,9 +67,13 @@ variable "max_aggregation_interval" {
 }
 
 variable "kms_key_arn" {
-  description = "Customer managed key that encrypts the log group. With null, CloudWatch encrypts with a key it owns."
+  description = "Customer managed key that encrypts the log group. Pass the logs key."
   type        = string
-  default     = null
+
+  validation {
+    condition     = can(regex("^arn:aws[a-z-]*:kms:", var.kms_key_arn))
+    error_message = "Give the ARN of a KMS key. Flow logs are not written to a log group without a customer managed key."
+  }
 }
 
 variable "permissions_boundary_arn" {
