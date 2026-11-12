@@ -22,6 +22,24 @@ module "sample_repository" {
   force_delete = var.disposable
 }
 
+# Which image of the service is deployed. Terraform creates the parameter
+# and the pipeline sets its value each time it pushes an image
+# (scripts/push-image.sh). The services layer reads it. Keeping the value
+# out of Terraform's hands means a deployment is "push, then apply", and
+# this parameter is the record of what is running.
+resource "aws_ssm_parameter" "sample_image" {
+  name        = "${module.sample_context.ssm_path}/image"
+  description = "Image of the sample service that is deployed. Set by the pipeline after a push."
+  type        = "String"
+  value       = "unset"
+
+  tags = module.sample_context.tags
+
+  lifecycle {
+    ignore_changes = [value]
+  }
+}
+
 resource "aws_ssm_parameter" "sample_repository" {
   for_each = {
     "repository-name" = module.sample_repository.repository_name
