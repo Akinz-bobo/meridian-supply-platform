@@ -10,6 +10,7 @@ Notable changes, newest first. The format follows [Keep a Changelog](https://kee
 - VPC endpoints and flow logs: tested `vpc-endpoints` and `vpc-flow-logs` modules in every environment, smoke checks for both, and policy rules POL-LOG-1 and POL-LOG-2 for log retention.
 - Security group baseline: a tested `tier-security-groups` module giving each tier one group linked by group reference, smoke checks, and policy rules POL-SG-1 and POL-SG-2.
 - Encryption: a tested `kms-key` module, four keys per environment (data, logs, messaging, secrets), flow logs encrypted with the logs key, the encryption standard, decision record 0010, and policy rules POL-KMS-1, POL-KMS-2 and POL-LOG-3.
+- IAM foundations: tested `permission-boundary`, `workload-role`, `access-roles` and `account-baseline` modules, the access model document, decision record 0011, and policy rules POL-IAM-4 and POL-IAM-5 with a recorded exception mechanism.
 
 ## [0.2.0] - 2026-11-11
 
