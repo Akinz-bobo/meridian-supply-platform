@@ -1,6 +1,6 @@
-# Threat model: network, identity and data
+# Threat model: network, identity, data and messaging
 
-What could go wrong in the network, identity and data layers of an environment, what stops it, and what is left. It covers milestones 2 and 3 and is extended as messaging, compute and services are added.
+What could go wrong in the network, identity, data and messaging layers of an environment, what stops it, and what is left. It covers milestones 2 to 4 and is extended as compute and services are added.
 
 - [Scope](#scope)
 - [What is being protected](#what-is-being-protected)
@@ -13,14 +13,15 @@ What could go wrong in the network, identity and data layers of an environment, 
 
 ## Scope
 
-| In scope                                                                | Out of scope until the milestone that builds it                              |
-| ----------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| The VPC, subnets, routing, endpoints, flow logs and security groups     | Queues, topics and streams (milestone 4)                                     |
-| Encryption keys and their policies                                      | Clusters, load balancers and instances (milestone 5)                         |
-| IAM: the boundary, workload roles, the deploy, operator and audit roles | Application code and its inputs (milestones 6 to 10)                         |
-| Secrets and configuration                                               | Detection and response: audit trail, threat detection, alarms (milestone 11) |
-| The pipeline's access to an environment, and Terraform state            |                                                                              |
-| Data stores: buckets, tables, the database, the cache, and backups      |                                                                              |
+| In scope                                                                  | Out of scope until the milestone that builds it                                     |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| The VPC, subnets, routing, endpoints, flow logs and security groups       | Clusters, load balancers and instances (milestone 5)                                |
+| Encryption keys and their policies                                        | Application code and its inputs (milestones 6 to 10)                                |
+| IAM: the boundary, workload roles, the deploy, operator and audit roles   | Detection and response: audit trail, threat detection, alarm routing (milestone 11) |
+| Secrets and configuration                                                 |                                                                                     |
+| The pipeline's access to an environment, and Terraform state              |                                                                                     |
+| Data stores: buckets, tables, the database, the cache, and backups        |                                                                                     |
+| Messaging: the event bus, consumer queues, topics and the movement stream |                                                                                     |
 
 The method is a walk through each trust boundary asking the STRIDE questions: can someone pretend to be something they are not, tamper, deny an action, read what they should not, stop the service, or gain privileges.
 
@@ -154,6 +155,27 @@ Added with milestone 3. The stores are described in the [data architecture](../d
 | S13 | A store fills up, or its cost runs away, unnoticed                                                       | Database storage grows to a ceiling. The cache evicts. Nothing alerts                                                                                                                                                                                        | Partly. [#92](https://github.com/Akinz-bobo/meridian-supply-platform/issues/92)                                                                                 |
 | S14 | Business data appears in logs                                                                            | Only statements slower than a threshold are logged, and the module refuses a threshold that would log most of them. Log groups are encrypted and kept for a bounded time                                                                                     | Partly. Slow statements can still contain data, and operators can read logs. Tracked in [#62](https://github.com/Akinz-bobo/meridian-supply-platform/issues/62) |
 
+### Messaging
+
+Added with milestone 4. The design is in [messaging](../messaging.md) and reviewed in the [messaging review](messaging-review.md).
+
+| #   | Threat                                                                                                    | Controls                                                                                                                                                                                                                    | Status                                                                                                                                                |
+| --- | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M1  | A service publishes an event that claims to come from another service                                     | Each producer's policy allows `PutEvents` only with its own `source`. Module tests read the rendered policies                                                                                                               | Mitigated in policy. Not proven by a refused request                                                                                                  |
+| M2  | Something outside the account publishes to the bus, or subscribes to a topic                              | The bus policy and the topic policies deny principals outside the account                                                                                                                                                   | Mitigated                                                                                                                                             |
+| M3  | Something other than the bus puts a message on a consumer's queue                                         | The queue policy admits EventBridge only, and only for the ARN of that queue's own rule                                                                                                                                     | Mitigated in policy                                                                                                                                   |
+| M4  | A consumer reads another consumer's messages, or a producer reads the stream                              | One queue per consumer, with a consume policy that names it. Separate produce and consume policies on the stream                                                                                                            | Mitigated in policy                                                                                                                                   |
+| M5  | Events or messages are read at rest or in transit                                                         | The bus, queues, topics and stream are encrypted with the messaging key. Queue and topic policies deny requests without TLS                                                                                                 | Mitigated in configuration                                                                                                                            |
+| M6  | An event is lost because its consumer was down, slow or failing                                           | Queues buffer for four days and retry. Five failures move a message to a dead-letter queue for 14 days. A backlog alarm and a dead-letter alarm. The event check exercises dead-lettering and redrive on every pull request | Mitigated. The backlog alarm was review finding E2                                                                                                    |
+| M7  | An event is lost because the bus could not deliver it                                                     | The target retries for an hour and then parks the event in the consumer's dead-letter queue                                                                                                                                 | Mitigated. Was review finding E1                                                                                                                      |
+| M8  | An event is applied twice                                                                                 | Delivery is at least once by design. Every consumer records the event `id` with its effect. The inventory tables enforce it with a uniqueness marker, exercised by `make data-check`                                        | Mitigated for inventory. A requirement on every later consumer                                                                                        |
+| M9  | A malformed event breaks consumers                                                                        | The envelope is a schema with a validator, tested in CI. A consumer that cannot process an event lets it reach the dead-letter queue                                                                                        | Partly. The `data` of each event has no schema until its producer is built, [#111](https://github.com/Akinz-bobo/meridian-supply-platform/issues/111) |
+| M10 | A failure is detected and nobody is told                                                                  | Alarms notify the alarms topic. The topic has no subscribers                                                                                                                                                                | Open. [#110](https://github.com/Akinz-bobo/meridian-supply-platform/issues/110)                                                                       |
+| M11 | An alarm notifies nobody because the service cannot use the topic's key                                   | CloudWatch and EventBridge are named in the messaging key's policy and in the topic policies                                                                                                                                | Mitigated in configuration. Found by reading, since the emulator evaluates no key policy                                                              |
+| M12 | Records on the stream are lost because the consumer was down past retention, or one record blocks a shard | 72 hours of retention. The consumer skips a movement it cannot apply and reports it                                                                                                                                         | Partly. Nothing alerts on consumer lag, [#112](https://github.com/Akinz-bobo/meridian-supply-platform/issues/112)                                     |
+| M13 | An event reveals data to a consumer that should not have it                                               | Events carry facts, not secrets, by rule. Notification events go to people                                                                                                                                                  | Partly. No check enforces it. It is a review point for each event schema                                                                              |
+| M14 | A past event cannot be recovered when a consumer needs it again                                           | The archive keeps every event for 90 days and can be replayed to a rule                                                                                                                                                     | Mitigated in configuration. A replay has not been exercised                                                                                           |
+
 ## Residual risks
 
 What remains after the controls above, in order of concern.
@@ -166,6 +188,7 @@ What remains after the controls above, in order of concern.
 6. **People's access depends on the identity account**, which is outside this repository.
 7. **Recovery is designed and not demonstrated** (S8). Backups are taken and restores have only been tried against an emulator that does not copy data.
 8. **Uploads are not inspected** (S10) until the service that reads them exists.
+9. **Alarms reach nobody** (M10). Every alarm is wired to a topic, and the topic has no subscribers. Until it has, detection exists and response does not.
 
 ## Assumptions
 
@@ -182,4 +205,5 @@ What remains after the controls above, in order of concern.
 - Each milestone that adds a layer adds its threats here, in the same pull request series as the review that closes the milestone.
 - A finding is either fixed, with the pull request named in the [review](baseline-review.md), or tracked in an issue.
 - Milestone 3 added the data section, with the [data layer review](data-review.md).
+- Milestone 4 added the messaging section, with the [messaging review](messaging-review.md).
 - The whole model is revisited in milestone 11, when detection and response exist.
