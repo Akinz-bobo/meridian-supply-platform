@@ -123,6 +123,15 @@ POL-SG-1 reads all three ways Terraform can express a rule: the per-rule resourc
 
 The [`postgres-database` module](../../infra/modules/postgres-database/README.md) guarantees all five. The rules exist for a database created any other way. POL-DB-5 is not applied to a run that marks the environment disposable, which is how a [teardown](pipeline.md#tearing-down-a-protected-environment) lifts protection on purpose.
 
+### Caches
+
+| Rule        | Rejects                                               | Reason                                                        |
+| ----------- | ----------------------------------------------------- | ------------------------------------------------------------- |
+| POL-CACHE-1 | A cache that does not encrypt connections             | The [encryption standard](../architecture/encryption.md)      |
+| POL-CACHE-2 | A cache that is not encrypted at rest                 | The same                                                      |
+| POL-CACHE-3 | A cache with an auth token                            | One password shared by every client, and stored in state      |
+| POL-CACHE-4 | A cache user that authenticates with anything but IAM | Passwords for cache users would have to be stored and rotated |
+
 ### Secrets
 
 | Rule         | Rejects                                                                     | Reason                                                                            |
