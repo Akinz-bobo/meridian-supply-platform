@@ -114,6 +114,7 @@ This creates a skeleton that meets the [module standards](../docs/architecture/m
 | [access-roles](modules/access-roles/README.md)                 | The deploy, operator and audit roles, and the GitHub identity provider               |
 | [account-baseline](modules/account-baseline/README.md)         | Account-wide safe defaults: no public buckets, encrypted volumes, access analyzer    |
 | [context](modules/context/README.md)                           | Nothing. Builds the names and tags every other module uses                           |
+| [data-bucket](modules/data-bucket/README.md)                   | A private, encrypted, versioned bucket with lifecycle rules and access policies      |
 | [kms-key](modules/kms-key/README.md)                           | A rotating encryption key with an alias and a key policy that delegates to IAM       |
 | [permission-boundary](modules/permission-boundary/README.md)   | The limit on what any workload role in an environment can be granted                 |
 | [service-config](modules/service-config/README.md)             | A service's parameters and secrets under its own path, with the policy to read them  |
