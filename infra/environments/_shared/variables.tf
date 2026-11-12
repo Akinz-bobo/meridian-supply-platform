@@ -138,3 +138,12 @@ variable "cache_replicas" {
   type        = number
   default     = 1
 }
+
+variable "alarm_subscriptions" {
+  description = "Where alarms are delivered in this environment, keyed by a short name. Each entry has a protocol (email, https, sqs, lambda, sms or firehose) and an endpoint. Empty means alarms reach nobody."
+  type = map(object({
+    protocol = string
+    endpoint = string
+  }))
+  default = {}
+}
