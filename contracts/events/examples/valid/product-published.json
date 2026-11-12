@@ -1,0 +1,13 @@
+{
+  "id": "0193b2a4-7c1e-7d3a-9f0b-2a6c1e4d5f60",
+  "type": "ProductPublished",
+  "version": 1,
+  "source": "meridian.catalog",
+  "occurredAt": "2031-03-04T09:30:00Z",
+  "correlationId": "0193b2a4-6f00-7b11-8e2a-91c0d4e7a3b2",
+  "causationId": "0193b2a4-6f9d-7c40-a1d3-5b8e2f0c9a71",
+  "data": {
+    "sku": "SKU-1042",
+    "name": "Yoghurt, natural, 500 g"
+  }
+}

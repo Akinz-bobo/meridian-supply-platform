@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Akinz-bobo/meridian-supply-platform/contracts/events/envelope.schema.json",
+  "title": "Event envelope",
+  "description": "The detail of every event on the bus. Business data lives under data, and has a schema of its own per event type and version.",
+  "type": "object",
+  "required": ["id", "type", "version", "source", "occurredAt", "correlationId", "data"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "description": "Unique per event. The idempotency key a consumer records.",
+      "type": "string",
+      "format": "uuid"
+    },
+    "type": {
+      "description": "What happened: past tense, PascalCase, in the language of the glossary.",
+      "type": "string",
+      "pattern": "^[A-Z][a-z0-9]+([A-Z][a-z0-9]+)+$"
+    },
+    "version": {
+      "description": "Which version of the schema for this type describes data.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "source": {
+      "description": "The service that published the event.",
+      "type": "string",
+      "pattern": "^meridian\\.[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+    },
+    "occurredAt": {
+      "description": "When it happened in the business, in UTC. Not when it was published.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$"
+    },
+    "correlationId": {
+      "description": "The same on every event and log line that stems from one original request.",
+      "type": "string",
+      "format": "uuid"
+    },
+    "causationId": {
+      "description": "The id of the event or request that directly caused this one. Absent on the first event of a chain.",
+      "type": "string",
+      "format": "uuid"
+    },
+    "data": {
+      "description": "The facts of the event. Described by contracts/events/<Type>.v<version>.schema.json.",
+      "type": "object"
+    }
+  }
+}
