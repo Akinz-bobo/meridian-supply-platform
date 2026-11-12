@@ -84,6 +84,7 @@ See [local development](docs/guides/local-development.md).
 | [Threat model](docs/architecture/security/threat-model.md)                  | What could go wrong in the network and identity layers, what stops it and what is left                |
 | [Baseline review](docs/architecture/security/baseline-review.md)            | The review of milestone 2: twelve findings, each fixed or tracked                                     |
 | [Data architecture](docs/architecture/data.md)                              | Which store holds what, classification, retention and recovery targets                                |
+| [Inventory data model](docs/architecture/inventory-data-model.md)           | The DynamoDB key design for stock, the rules it enforces, and a check that exercises it               |
 
 Changes are summarised in the [changelog](CHANGELOG.md).
 
