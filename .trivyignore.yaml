@@ -8,6 +8,7 @@ misconfigurations:
   - id: AVD-AWS-0104
     paths:
       - 'modules/tier-security-groups/main.tf'
+      - 'modules/ecs-service/main.tf'
     statement: >-
       Accepted. Workloads may open HTTPS (TCP 443 only) to any address,
       because they call AWS APIs and partner APIs whose addresses are not
