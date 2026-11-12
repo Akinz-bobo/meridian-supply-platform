@@ -11,6 +11,10 @@ Notable changes, newest first. The format follows [Keep a Changelog](https://kee
 - DynamoDB: a tested `dynamodb-table` module with access policies as outputs, the movement ledger and stock level tables in every environment, the inventory data model, and `make data-check`, which exercises the key design in the pipeline.
 - PostgreSQL: a tested `postgres-database` module with RDS-managed credentials, enforced TLS, backups and logs, the catalog database in every environment, a database check in `make data-check`, and policy rules POL-DB-1 to POL-DB-5.
 
+### Fixed
+
+- The security scan evaluated environment layers with their variables unknown, because the scanner does not follow the symbolic link to the shared variables file. It now scans a copy with links resolved.
+
 ## [0.3.0] - 2026-11-12
 
 Milestone 2: network and security baseline. The network, encryption keys, identity and secrets that every workload will depend on, reviewed as a whole against a threat model before anything is built on top.
