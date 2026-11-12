@@ -249,3 +249,54 @@ run "rejects_dropping_failed_messages_within_days" {
 
   expect_failures = [var.dead_letter_retention_days]
 }
+
+run "an_event_the_bus_cannot_deliver_is_parked_and_not_dropped" {
+  command = plan
+
+  assert {
+    condition     = length(aws_cloudwatch_event_target.this.dead_letter_config) == 1
+    error_message = "The target must have a dead-letter queue, or an undeliverable event is discarded after a day."
+  }
+
+  assert {
+    condition     = one(aws_cloudwatch_event_target.this.retry_policy).maximum_event_age_in_seconds == 3600
+    error_message = "The bus retries delivery for an hour by default."
+  }
+
+  assert {
+    condition = one([
+      for statement in jsondecode(data.aws_iam_policy_document.dead_letter.json).Statement : statement
+      if statement.Sid == "TheRuleParksUndeliveredEvents"
+    ]).Condition.ArnEquals["aws:SourceArn"] == "arn:aws:events:eu-west-1:333333333333:rule/meridian-prod-events/meridian-prod-budget-goods-received"
+    error_message = "Only this module's rule may send to the dead-letter queue."
+  }
+}
+
+run "alarms_when_the_consumer_falls_behind" {
+  command = plan
+
+  assert {
+    condition     = aws_cloudwatch_metric_alarm.backlog.metric_name == "ApproximateAgeOfOldestMessage" && aws_cloudwatch_metric_alarm.backlog.threshold == 900
+    error_message = "The backlog alarm fires when the oldest message is older than 15 minutes by default."
+  }
+
+  assert {
+    condition     = aws_cloudwatch_metric_alarm.backlog.dimensions["QueueName"] == "meridian-prod-budget-goods-received"
+    error_message = "The backlog alarm must watch the queue, not the dead-letter queue."
+  }
+
+  assert {
+    condition     = aws_cloudwatch_metric_alarm.backlog.threshold < aws_sqs_queue.this.message_retention_seconds
+    error_message = "The alarm must fire before messages are discarded at the end of retention."
+  }
+}
+
+run "rejects_a_backlog_alarm_that_never_fires_in_time" {
+  command = plan
+
+  variables {
+    backlog_alarm_minutes = 20000
+  }
+
+  expect_failures = [var.backlog_alarm_minutes]
+}
