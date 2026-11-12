@@ -364,6 +364,17 @@ check 'a rule sends notification events to the notifications topic' jq -e \
   '.Targets | length == 1 and (.[0].Arn | endswith("-notifications")) and .[0].InputPath == "$.detail"' \
   <<<"$(as_account "$account" aws events list-targets-by-rule --rule "meridian-$environment-notifications" --event-bus-name "$bus" --output json 2>/dev/null || echo '{}')"
 
+# Messaging layer: the movement stream.
+stream="$(as_account "$account" aws kinesis describe-stream-summary \
+  --stream-name "meridian-$environment-inventory-movement-stream" --output json 2>/dev/null |
+  jq -c '.StreamDescriptionSummary // {}' || echo '{}')"
+check 'the movement stream is active' jq -e '.StreamStatus == "ACTIVE"' <<<"$stream"
+check 'it is encrypted with the messaging key' jq -e --arg k "$messaging_key_arn" \
+  '.EncryptionType == "KMS" and .KeyId == $k' <<<"$stream"
+check 'it keeps records for three days' jq -e '.RetentionPeriodHours == 72' <<<"$stream"
+check 'its name is published for the inventory service' \
+  as_account "$account" aws ssm get-parameter --name "/meridian/$environment/inventory/movement-stream-name"
+
 while IFS= read -r layer; do
   check "state for the $layer layer is in the shared bucket" \
     as_account "$state_account" aws s3api head-object --bucket "$state_bucket" --key "$1/$layer/terraform.tfstate"
