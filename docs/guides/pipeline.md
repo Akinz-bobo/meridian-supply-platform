@@ -150,6 +150,12 @@ steps:
 
 The deploy role and its trust policy are built by the [`access-roles` module](../../infra/modules/access-roles/README.md) and described in the [access model](../architecture/access-model.md#the-deploy-role). The job must declare `environment: <name>`, because the trust policy matches the token subject `repo:<owner>/<repository>:environment:<name>` exactly.
 
+### Layers and the plan
+
+An environment is several state layers, planned one after another. A layer reads what the layers below it published in Parameter Store. A pull request that adds a parameter to one layer and reads it in the layer above cannot plan the upper layer until the lower one is applied, because the parameter does not exist yet. The plan fails with the name of the missing parameter.
+
+Split such a change in two: publish the parameter first, then consume it. That is also the safe order on a real account, where a consumer deployed before its dependency fails in the same way.
+
 ## When the pipeline fails
 
 | Step that failed      | Usual cause                                                                                | What to do                                                                                                                                                                                                                                |
