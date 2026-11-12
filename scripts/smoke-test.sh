@@ -142,6 +142,40 @@ check 'the logs key policy limits CloudWatch Logs to this account' jq -e --arg a
     | .Condition.StringEquals["aws:SourceAccount"] == $a' \
   <<<"$(as_account "$account" aws kms get-key-policy --key-id "$logs_key_arn" --policy-name default --output json 2>/dev/null || echo '{}')"
 
+# Identity and access.
+boundary_arn="arn:aws:iam::$account:policy/meridian-$environment-workload-boundary"
+check 'the workload permission boundary exists' \
+  as_account "$account" aws iam get-policy --policy-arn "$boundary_arn"
+check 'the flow logs delivery role carries the boundary' jq -e --arg b "$boundary_arn" \
+  '.Role.PermissionsBoundary.PermissionsBoundaryArn == $b' \
+  <<<"$(as_account "$account" aws iam get-role --role-name "meridian-$environment-network-flow-logs-role" --output json 2>/dev/null || echo '{}')"
+
+deploy_trust="$(as_account "$account" aws iam get-role --role-name "meridian-$environment-access-deploy" \
+  --output json 2>/dev/null | jq -c '.Role.AssumeRolePolicyDocument.Statement[0] // {}' || echo '{}')"
+check 'the deploy role is assumed with a GitHub token, not a stored key' \
+  jq -e '.Action == "sts:AssumeRoleWithWebIdentity" and (.Principal.Federated | endswith("token.actions.githubusercontent.com"))' \
+  <<<"$deploy_trust"
+check 'the deploy role names one repository and one environment' jq -e \
+  '.Condition.StringEquals["token.actions.githubusercontent.com:sub"]
+    | type == "string" and startswith("repo:") and (contains("*") | not)' <<<"$deploy_trust"
+for role in operator audit; do
+  check "the $role role requires multi-factor authentication" jq -e \
+    '.Role.AssumeRolePolicyDocument.Statement[0].Condition.Bool["aws:MultiFactorAuthPresent"] == "true"' \
+    <<<"$(as_account "$account" aws iam get-role --role-name "meridian-$environment-access-$role" --output json 2>/dev/null || echo '{}')"
+done
+check 'the audit role has only the audit and view-only policies' jq -e \
+  '[.AttachedPolicies[]?.PolicyName] | sort == ["SecurityAudit", "ViewOnlyAccess"]' \
+  <<<"$(as_account "$account" aws iam list-attached-role-policies --role-name "meridian-$environment-access-audit" --output json 2>/dev/null || echo '{}')"
+
+# Account baseline.
+check 'public buckets are blocked for the whole account' jq -e \
+  '.PublicAccessBlockConfiguration | .BlockPublicAcls and .IgnorePublicAcls and .BlockPublicPolicy and .RestrictPublicBuckets' \
+  <<<"$(as_account "$account" aws s3control get-public-access-block --account-id "$account" --output json 2>/dev/null || echo '{}')"
+check 'new EBS volumes are encrypted by default' jq -e '.EbsEncryptionByDefault' \
+  <<<"$(as_account "$account" aws ec2 get-ebs-encryption-by-default --output json 2>/dev/null || echo '{}')"
+check 'an access analyzer is active' jq -e '[.analyzers[]? | select(.status == "ACTIVE")] | length == 1' \
+  <<<"$(as_account "$account" aws accessanalyzer list-analyzers --output json 2>/dev/null || echo '{}')"
+
 while IFS= read -r layer; do
   check "state for the $layer layer is in the shared bucket" \
     as_account "$state_account" aws s3api head-object --bucket "$state_bucket" --key "$1/$layer/terraform.tfstate"
