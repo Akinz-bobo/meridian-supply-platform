@@ -85,6 +85,7 @@ See [local development](docs/guides/local-development.md).
 | [Baseline review](docs/architecture/security/baseline-review.md)            | The review of milestone 2: twelve findings, each fixed or tracked                                     |
 | [Data architecture](docs/architecture/data.md)                              | Which store holds what, classification, retention and recovery targets                                |
 | [Inventory data model](docs/architecture/inventory-data-model.md)           | The DynamoDB key design for stock, the rules it enforces, and a check that exercises it               |
+| [Restore runbook](docs/runbooks/restore.md)                                 | How to get data back for each kind of store, and what has and has not been tested                     |
 
 Changes are summarised in the [changelog](CHANGELOG.md).
 

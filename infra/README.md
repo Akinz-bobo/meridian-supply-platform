@@ -115,6 +115,7 @@ This creates a skeleton that meets the [module standards](../docs/architecture/m
 | -------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | [access-roles](modules/access-roles/README.md)                 | The deploy, operator and audit roles, and the GitHub identity provider                |
 | [account-baseline](modules/account-baseline/README.md)         | Account-wide safe defaults: no public buckets, encrypted volumes, access analyzer     |
+| [backup-plan](modules/backup-plan/README.md)                   | A locked vault, a daily plan and selection of stores by tag                           |
 | [context](modules/context/README.md)                           | Nothing. Builds the names and tags every other module uses                            |
 | [data-bucket](modules/data-bucket/README.md)                   | A private, encrypted, versioned bucket with lifecycle rules and access policies       |
 | [dynamodb-table](modules/dynamodb-table/README.md)             | A table with encryption, point-in-time recovery, indexes, streams and access policies |
