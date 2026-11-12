@@ -7,12 +7,7 @@ Everything the platform runs on, as Terraform. The reasoning behind the layout i
 ```
 infra/
   bootstrap/         creates the remote state bucket. Applied once, by hand
-  modules/           reusable building blocks
-    context/         naming and tagging, used by every other module
-    state-bucket/    the encrypted, versioned bucket that holds state
-    vpc/             three-tier network across three zones
-    vpc-endpoints/   private paths to AWS services
-    vpc-flow-logs/   traffic records in CloudWatch Logs
+  modules/           reusable building blocks, one directory each. Listed under "Modules" below
   policies/          organisation rules, checked against every plan
   environments/
     _shared/         provider, version and variable files, defined once
@@ -110,10 +105,11 @@ This creates a skeleton that meets the [module standards](../docs/architecture/m
 
 ## Modules
 
-| Module                                           | Creates                                                                              |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------ |
-| [context](modules/context/README.md)             | Nothing. Builds the names and tags every other module uses                           |
-| [state-bucket](modules/state-bucket/README.md)   | The encrypted, versioned bucket that holds Terraform state                           |
-| [vpc](modules/vpc/README.md)                     | A three-tier network across three zones, with an isolated data tier                  |
-| [vpc-endpoints](modules/vpc-endpoints/README.md) | Gateway and interface endpoints, so traffic to AWS services stays on the AWS network |
-| [vpc-flow-logs](modules/vpc-flow-logs/README.md) | A record of VPC traffic in CloudWatch Logs, with a narrow delivery role              |
+| Module                                                         | Creates                                                                              |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| [context](modules/context/README.md)                           | Nothing. Builds the names and tags every other module uses                           |
+| [state-bucket](modules/state-bucket/README.md)                 | The encrypted, versioned bucket that holds Terraform state                           |
+| [tier-security-groups](modules/tier-security-groups/README.md) | One security group per tier, linked by group reference                               |
+| [vpc](modules/vpc/README.md)                                   | A three-tier network across three zones, with an isolated data tier                  |
+| [vpc-endpoints](modules/vpc-endpoints/README.md)               | Gateway and interface endpoints, so traffic to AWS services stays on the AWS network |
+| [vpc-flow-logs](modules/vpc-flow-logs/README.md)               | A record of VPC traffic in CloudWatch Logs, with a narrow delivery role              |
