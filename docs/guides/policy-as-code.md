@@ -57,6 +57,7 @@ A resource type counts as taggable if its planned values include `tags_all`, so 
 | POL-NAME-2 | Names are lower case letters, digits and single hyphens              | Valid in every AWS service, including S3 and DNS                         |
 | POL-NAME-3 | Parameter and log group paths start with `/<project>/<environment>/` | Access is granted by path                                                |
 | POL-NAME-4 | Key aliases start with `alias/<project>-<environment>-`              | Same as POL-NAME-1                                                       |
+| POL-NAME-5 | Network resources carry a `Name` tag starting with the same prefix   | They have no name attribute. The tag is what the console shows           |
 
 The standard itself is in [environments, naming and tagging](../architecture/environments.md#naming-standard). The resource types covered are listed in [`naming.rego`](../../infra/policies/naming.rego). A type is added there when the first module that creates it lands.
 
