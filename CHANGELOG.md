@@ -4,6 +4,10 @@ Notable changes, newest first. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+### Added
+
+- Network: a tested `vpc` module with public, private and isolated data tiers across three zones, added to every environment and published to Parameter Store, with network checks in the smoke test, policy rule POL-NAME-5 and a network architecture document.
+
 ## [0.2.0] - 2026-11-11
 
 Milestone 1: infrastructure foundation. The first Terraform, and everything needed to change infrastructure safely: a local emulator, a layout for modules and environments, remote state, static analysis, policy as code and a pipeline.

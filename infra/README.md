@@ -10,6 +10,7 @@ infra/
   modules/           reusable building blocks
     context/         naming and tagging, used by every other module
     state-bucket/    the encrypted, versioned bucket that holds state
+    vpc/             three-tier network across three zones
   policies/          organisation rules, checked against every plan
   environments/
     _shared/         provider, version and variable files, defined once
@@ -107,7 +108,8 @@ This creates a skeleton that meets the [module standards](../docs/architecture/m
 
 ## Modules
 
-| Module                                         | Creates                                                    |
-| ---------------------------------------------- | ---------------------------------------------------------- |
-| [context](modules/context/README.md)           | Nothing. Builds the names and tags every other module uses |
-| [state-bucket](modules/state-bucket/README.md) | The encrypted, versioned bucket that holds Terraform state |
+| Module                                         | Creates                                                             |
+| ---------------------------------------------- | ------------------------------------------------------------------- |
+| [context](modules/context/README.md)           | Nothing. Builds the names and tags every other module uses          |
+| [state-bucket](modules/state-bucket/README.md) | The encrypted, versioned bucket that holds Terraform state          |
+| [vpc](modules/vpc/README.md)                   | A three-tier network across three zones, with an isolated data tier |
