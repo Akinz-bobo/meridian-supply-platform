@@ -14,8 +14,8 @@ The plan for building Meridian, milestone by milestone: what each delivers, what
 | [M0: Planning and architecture](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/1)               | The problem, domain, architecture, decisions and process, in writing               | v0.1.0  | Complete |
 | [M1: Infrastructure foundation](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/2)               | Emulator, Terraform layout, remote state, static analysis, policy checks, pipeline | v0.2.0  | Complete |
 | [M2: Network and security baseline](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/3)           | VPC, endpoints, security groups, KMS, IAM, secrets                                 | v0.3.0  | Complete |
-| [M3: Data layer](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/4)                              | RDS, DynamoDB, S3, ElastiCache modules                                             | v0.4.0  | Next     |
-| [M4: Messaging and events](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/5)                    | SQS, SNS, Kinesis, EventBridge modules                                             | v0.5.0  | Planned  |
+| [M3: Data layer](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/4)                              | RDS, DynamoDB, S3, ElastiCache modules                                             | v0.4.0  | Complete |
+| [M4: Messaging and events](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/5)                    | SQS, SNS, Kinesis, EventBridge modules                                             | v0.5.0  | Next     |
 | [M5: Compute platforms](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/6)                       | ECR, ECS, EKS, load balancing, the EC2 gateway                                     | v0.6.0  | Planned  |
 | [M6: Catalog and curation](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/7)                    | Supplier file ingestion, curation workflow, product master                         | v0.7.0  | Planned  |
 | [M7: Inventory and warehouse events](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/8)          | Movement pipeline, ledger, stock levels, expiry                                    | v0.8.0  | Planned  |
@@ -100,9 +100,19 @@ Each milestone has a goal, deliverables and exit criteria. Milestones 0 to 3 are
 
 **Goal.** Reusable modules for every kind of store the services need: RDS PostgreSQL, DynamoDB, S3 and ElastiCache, each encrypted, backed up and monitored by default.
 
-**Exit criteria.** Each module has tests, a generated README and an example. A database can be created, connected to from the private tier, backed up and destroyed.
+**Delivered.** A `data` state layer in every environment and the [data architecture](../architecture/data.md). Five modules: `data-bucket`, `dynamodb-table`, `postgres-database`, `redis-cache` and `backup-plan`. The first stores: the supplier uploads bucket, the movement ledger and stock level tables with their [key design](../architecture/inventory-data-model.md), the catalog database, the stock cache, and a backup vault with a daily plan. A [restore runbook](../runbooks/restore.md). The threat model extended to data, and a [data layer review](../architecture/security/data-review.md).
 
-**Issues.** The data layer and data architecture (72), the S3 bucket module (73), the DynamoDB table module (74), the RDS PostgreSQL module (75), the ElastiCache module (76), backups (77), and a review and release (78).
+**Exit criteria, as verified.** Each module has tests, a generated README and an example. A database can be created, connected to from outside Terraform with credentials Terraform never saw, used, backed up and destroyed: `make data-check` and the teardown rehearsal, on every pull request. "Monitored by default" is met for logs, which every store sends to an encrypted log group with retention, and **not** for alarms, which are tracked in issue 92.
+
+**What changed from the plan.**
+
+- **Stores are used, not only created.** `make data-check` exercises each one through its API: the inventory key design including ten concurrent picks, SQL on the database, the cache's access rule against a real Valkey server, and a backup job. This was not in the plan and is the main thing the milestone added.
+- **No stored credential anywhere in the layer.** The database's master password is created and rotated by RDS, and the cache has no password: its users authenticate with IAM.
+- **The pipeline was rebuilt** to rehearse the three environments in parallel, after the rehearsal had grown from 7 minutes to 16.
+- **Two checks were found to be weaker than they looked** and fixed: the security scanner could not see variables in the environment layers, and the teardown rehearsal could not destroy a protected environment.
+- **Recovery is not demonstrated.** The emulator accepts restore commands and creates the restored store empty. The recovery targets are intentions until the drill in milestone 11.
+
+**Issues.** The data layer and data architecture (72), the S3 bucket module (73), the DynamoDB table module (74), the RDS PostgreSQL module (75), the ElastiCache module (76), backups (77), the parallel pipeline (83), a review (78) and its two fixes (88, 89). Carried forward: 90 to 94.
 
 ### M4: Messaging and events
 
