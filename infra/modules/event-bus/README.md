@@ -8,6 +8,7 @@ What a caller needs to know:
 - **Nothing outside the account can publish**, whatever IAM policy anyone writes. The bus policy denies it.
 - **Every event is archived**, for 90 days by default, so that a consumer added later or one that lost data can be sent the past again.
 - **Every event is logged** to `/aws/events/<name>`, encrypted and with retention. During an incident, "was it published, and what did it say" is a log query, with no replay needed.
+- **Delivery to the event log needs a CloudWatch Logs resource policy**, which the module creates. Set `manage_log_resource_policy = false` where the account already has one for `/aws/events/` log groups.
 - **The bus is encrypted** with the key in `kms_key_arn`. A publisher's policy includes use of that key, only by way of EventBridge.
 - **Consumers are not here.** A consumer gets its own queue, fed by its own rule on this bus, from the `event-consumer-queue` module.
 
@@ -66,6 +67,7 @@ output "catalog_publish_policy_json" {
 | archive\_retention\_days | How long events are kept for replay. | `number` | `90` | no |
 | description | What travels on the bus, in one sentence. | `string` | `"Business events between the platform's services."` | no |
 | log\_retention\_days | How long the readable log of events is kept. | `number` | `30` | no |
+| manage\_log\_resource\_policy | Create the CloudWatch Logs resource policy that lets EventBridge write to the event log. Turn off when the account already has a policy covering /aws/events/ log groups, or where the target cannot manage one. | `bool` | `true` | no |
 | publishers | Services that publish to the bus, by the name used in their source. Each gets a publish policy limited to that source. | `set(string)` | `[]` | no |
 
 ## Outputs

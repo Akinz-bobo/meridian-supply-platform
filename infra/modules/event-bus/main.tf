@@ -93,7 +93,12 @@ data "aws_iam_policy_document" "log_delivery" {
   }
 }
 
+# An account has a small number of these policies, and some organisations
+# manage them centrally with one policy for every /aws/events/ log group.
+# In that case the caller turns this one off.
 resource "aws_cloudwatch_log_resource_policy" "events" {
+  count = var.manage_log_resource_policy ? 1 : 0
+
   policy_name     = "${var.name}-event-log"
   policy_document = data.aws_iam_policy_document.log_delivery.json
 }
