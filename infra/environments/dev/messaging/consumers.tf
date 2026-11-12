@@ -39,6 +39,9 @@ module "consumer_queue" {
   event_types   = each.value.types
 
   kms_key_arn = local.facts.messaging_key_arn
+
+  # A message in any dead-letter queue notifies the alarms topic.
+  alarm_actions = [module.alarms_topic.topic_arn]
 }
 
 resource "aws_ssm_parameter" "consumer_queue_url" {
