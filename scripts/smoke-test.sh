@@ -319,6 +319,27 @@ check 'the event log has retention and the logs key' jq -e --arg k "$logs_key_ar
 check 'the bus name is published for services' \
   as_account "$account" aws ssm get-parameter --name "/meridian/$environment/events/bus-name"
 
+# Messaging layer: consumer queues.
+messaging_key_arn="$(as_account "$account" aws kms describe-key --key-id "alias/meridian-$environment-messaging" \
+  --output json 2>/dev/null | jq -r '.KeyMetadata.Arn // empty' || true)"
+for consumer in inventory-product-published inventory-goods-received budget-goods-received; do
+  queue="meridian-$environment-$consumer"
+  url="$(as_account "$account" aws sqs get-queue-url --queue-name "$queue" --output json 2>/dev/null |
+    jq -r '.QueueUrl // empty' || true)"
+  attributes="$(as_account "$account" aws sqs get-queue-attributes --queue-url "$url" --attribute-names All \
+    --output json 2>/dev/null | jq -c '.Attributes // {}' || echo '{}')"
+  check "the queue $consumer exists and is encrypted with the messaging key" jq -e --arg k "$messaging_key_arn" \
+    '.KmsMasterKeyId == $k' <<<"$attributes"
+  check "it moves a message to $consumer-dlq after five failed receives" jq -e --arg d "$queue-dlq" \
+    '.RedrivePolicy | fromjson | .maxReceiveCount == 5 and (.deadLetterTargetArn | endswith(":" + $d))' <<<"$attributes"
+  check 'only its own rule on the bus can deliver to it' jq -e --arg r "rule/$bus/$queue" \
+    '.Policy | fromjson | any(.Statement[]; .Effect == "Allow" and .Principal.Service == "events.amazonaws.com"
+      and (.Condition.ArnEquals["aws:SourceArn"] | endswith($r)))' <<<"$attributes"
+  check 'an alarm watches its dead-letter queue' jq -e --arg d "$queue-dlq" \
+    '.MetricAlarms[0] | .Threshold == 0 and any(.Dimensions[]; .Name == "QueueName" and .Value == $d)' \
+    <<<"$(as_account "$account" aws cloudwatch describe-alarms --alarm-names "$queue-dlq-not-empty" --output json 2>/dev/null || echo '{}')"
+done
+
 while IFS= read -r layer; do
   check "state for the $layer layer is in the shared bucket" \
     as_account "$state_account" aws s3api head-object --bucket "$state_bucket" --key "$1/$layer/terraform.tfstate"
