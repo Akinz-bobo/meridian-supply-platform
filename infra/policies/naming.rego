@@ -83,3 +83,27 @@ deny contains msg if {
 	not startswith(name, concat("", ["alias/", prefix]))
 	msg := sprintf("POL-NAME-4: %s is named %q. Key aliases must start with \"alias/%s\"", [rc.address, name, prefix])
 }
+
+# Network resources have no name attribute. Their name is the Name tag, and
+# it is what an engineer sees in the console when choosing a subnet.
+name_tag_types := {
+	"aws_eip",
+	"aws_internet_gateway",
+	"aws_nat_gateway",
+	"aws_network_acl",
+	"aws_route_table",
+	"aws_subnet",
+	"aws_vpc",
+	"aws_vpc_endpoint",
+}
+
+deny contains msg if {
+	some rc in plan.changing
+	rc.type in name_tag_types
+	name := object.get(rc.change.after, ["tags", "Name"], "")
+	not startswith(name, prefix)
+	msg := sprintf(
+		"POL-NAME-5: %s has the Name tag %q. Network resources need a Name tag starting with %q",
+		[rc.address, name, prefix],
+	)
+}

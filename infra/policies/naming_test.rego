@@ -61,7 +61,7 @@ test_allows_a_key_alias_with_the_prefix if {
 }
 
 test_ignores_types_that_are_not_named_by_us if {
-	rc := fixtures.create("aws_route_table", "rt", {"vpc_id": "vpc-123"})
+	rc := fixtures.create("aws_route_table_association", "rta", {"subnet_id": "subnet-123"})
 	count(naming.deny) == 0 with input as fixtures.plan("prod", [rc])
 }
 
@@ -71,4 +71,30 @@ test_skips_a_name_that_is_not_known_until_apply if {
 		{"change": {"actions": ["create"], "after": {}, "after_unknown": {"bucket": true}}},
 	)
 	count(naming.deny) == 0 with input as fixtures.plan("prod", [rc])
+}
+
+test_allows_a_subnet_with_a_prefixed_name_tag if {
+	rc := fixtures.create("aws_subnet", "s", {"tags": {"Name": "meridian-prod-network-data-a"}})
+	count(naming.deny) == 0 with input as fixtures.plan("prod", [rc])
+}
+
+test_denies_a_subnet_without_a_name_tag if {
+	rc := fixtures.create("aws_subnet", "s", {"tags": {"Tier": "data"}})
+	messages := naming.deny with input as fixtures.plan("prod", [rc])
+	some msg in messages
+	contains(msg, "POL-NAME-5")
+}
+
+test_denies_a_vpc_named_for_another_environment if {
+	rc := fixtures.create("aws_vpc", "v", {"tags": {"Name": "meridian-dev-network"}})
+	messages := naming.deny with input as fixtures.plan("prod", [rc])
+	some msg in messages
+	contains(msg, "POL-NAME-5")
+}
+
+test_denies_a_network_resource_with_no_tags_at_all if {
+	rc := fixtures.create("aws_route_table", "r", {})
+	messages := naming.deny with input as fixtures.plan("prod", [rc])
+	some msg in messages
+	contains(msg, "POL-NAME-5")
 }
