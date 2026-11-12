@@ -9,3 +9,9 @@ aws_account_id = "222222222222"
 
 vpc_cidr           = "10.20.0.0/16"
 availability_zones = ["eu-west-1a", "eu-west-1b", "eu-west-1c"]
+
+# Access. The GitHub environment whose jobs may deploy here, and where this
+# environment keeps its state.
+
+github_environment = "staging"
+state_key_prefix   = "staging"

@@ -16,3 +16,9 @@ single_nat_gateway = true
 interface_endpoint_services = ["ecr.api", "ecr.dkr", "secretsmanager"]
 
 log_retention_days = 30
+
+# Access. The GitHub environment whose jobs may deploy here, and where this
+# environment keeps its state.
+
+github_environment = "dev"
+state_key_prefix   = "dev"
