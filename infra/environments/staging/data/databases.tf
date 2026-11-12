@@ -5,8 +5,14 @@
 module "catalog_db" {
   source = "../../../modules/postgres-database"
 
-  name          = "${module.catalog_context.prefix}-db"
-  tags          = module.catalog_context.tags
+  name = "${module.catalog_context.prefix}-db"
+
+  tags = module.catalog_context.tags
+
+  # Backed up daily to the vault, on top of RDS's own automated backups.
+  # A store tag goes on the instance only, not on its log group.
+  store_tags = local.backup_tag
+
   database_name = "catalog"
 
   data_classification = "confidential"
