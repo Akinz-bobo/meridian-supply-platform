@@ -59,6 +59,7 @@ check required tflint 0.60 'Install with: make tools' tflint --version
 check required trivy 0.60 'Install with: make tools' trivy --version
 check required conftest 0.60 'Install with: make tools' conftest --version
 check required terraform-docs 0.20 'Install with: make tools' terraform-docs --version
+check required psql 14.0 'The PostgreSQL client, used by make data-check.' psql --version
 
 echo
 echo 'Needed by later milestones'
