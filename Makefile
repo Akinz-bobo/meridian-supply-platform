@@ -148,6 +148,14 @@ scan: ## Scan the Terraform for security misconfigurations (medium and above)
 scan-all: ## Scan and report every finding, including low severity, without failing
 	@./scripts/terraform-scan.sh --severity LOW,MEDIUM,HIGH,CRITICAL --exit-code 0
 
+# Uses a shellcheck on the PATH when there is one. Otherwise it runs the
+# linter from its container image, so nothing needs to be installed.
+.PHONY: shellcheck
+shellcheck: ## Lint the shell scripts, as CI does
+	@if command -v shellcheck >/dev/null; then shellcheck scripts/*.sh; \
+	else docker run --rm --volume "$(CURDIR):/mnt:ro" --workdir /mnt koalaman/shellcheck:v0.10.0 scripts/*.sh; fi
+	@echo 'Shell scripts are clean.'
+
 .PHONY: policy-test
 policy-test: ## Run the tests of the policies themselves
 	conftest fmt --check infra/policies
