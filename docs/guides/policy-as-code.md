@@ -52,13 +52,13 @@ A resource type counts as taggable if its planned values include `tags_all`, so 
 
 ### Naming
 
-| Rule       | Requires                                                                     | Reason                                                                   |
-| ---------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| POL-NAME-1 | Names start with `<project>-<environment>-`                                  | A name says where a resource lives. IAM policies can be scoped by prefix |
-| POL-NAME-2 | Names are lower case letters, digits and single hyphens                      | Valid in every AWS service, including S3 and DNS                         |
-| POL-NAME-3 | Parameter, secret and log group paths start with `/<project>/<environment>/` | Access is granted by path                                                |
-| POL-NAME-4 | Key aliases start with `alias/<project>-<environment>-`                      | Same as POL-NAME-1                                                       |
-| POL-NAME-5 | Network resources carry a `Name` tag starting with the same prefix           | They have no name attribute. The tag is what the console shows           |
+| Rule       | Requires                                                                                                                                                                      | Reason                                                                   |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| POL-NAME-1 | Names start with `<project>-<environment>-`                                                                                                                                   | A name says where a resource lives. IAM policies can be scoped by prefix |
+| POL-NAME-2 | Names are lower case letters, digits and single hyphens                                                                                                                       | Valid in every AWS service, including S3 and DNS                         |
+| POL-NAME-3 | Parameter, secret and log group paths start with `/<project>/<environment>/`. A log group whose name an AWS service dictates, under `/aws/`, must contain the resource prefix | Access is granted by path                                                |
+| POL-NAME-4 | Key aliases start with `alias/<project>-<environment>-`                                                                                                                       | Same as POL-NAME-1                                                       |
+| POL-NAME-5 | Network resources carry a `Name` tag starting with the same prefix                                                                                                            | They have no name attribute. The tag is what the console shows           |
 
 The standard itself is in [environments, naming and tagging](../architecture/environments.md#naming-standard). The resource types covered are listed in [`naming.rego`](../../infra/policies/naming.rego). A type is added there when the first module that creates it lands.
 
@@ -110,6 +110,18 @@ POL-SG-1 reads all three ways Terraform can express a rule: the per-rule resourc
 | --------- | ------------------------------------- | ------------------------------------------------------------------------------------------- |
 | POL-KMS-1 | Every key rotates                     | Limits how much data one version of key material protects                                   |
 | POL-KMS-2 | A deletion window of at least 14 days | Deleting a key destroys access to everything it encrypted. The window is the time to notice |
+
+### Databases
+
+| Rule     | Rejects                                   | Reason                                                                                      |
+| -------- | ----------------------------------------- | ------------------------------------------------------------------------------------------- |
+| POL-DB-1 | A publicly accessible database            | A database is reached from the private subnets only                                         |
+| POL-DB-2 | A database that is not encrypted at rest  | The [encryption standard](../architecture/encryption.md)                                    |
+| POL-DB-3 | A master password given to Terraform      | It would be stored in state. RDS can create and rotate it                                   |
+| POL-DB-4 | Fewer than 7 days of backups, outside dev | Recovery targets in the [data architecture](../architecture/data.md#retention-and-recovery) |
+| POL-DB-5 | No deletion protection, outside dev       | Deleting a database is not undone by applying again                                         |
+
+The [`postgres-database` module](../../infra/modules/postgres-database/README.md) guarantees all five. The rules exist for a database created any other way. POL-DB-5 is not applied to a run that marks the environment disposable, which is how a [teardown](pipeline.md#tearing-down-a-protected-environment) lifts protection on purpose.
 
 ### Secrets
 

@@ -8,6 +8,7 @@ Which store holds what, how sensitive it is, how long it is kept and how it is r
 - [Retention and recovery](#retention-and-recovery)
 - [Differences between environments](#differences-between-environments)
 - [The data layer](#the-data-layer)
+- [Database credentials](#database-credentials)
 - [How it is enforced](#how-it-is-enforced)
 
 ## Stores
@@ -144,6 +145,19 @@ The `data` layer is applied after `foundation` and destroyed before it. It reads
 
 A missing parameter fails the plan with the parameter's name, which is the signal that the foundation layer has not been applied.
 
+## Database credentials
+
+No database password exists in the repository, in Terraform state or in a plan.
+
+| Credential                                | Created by                            | Stored                                                                             | Used by                                                            |
+| ----------------------------------------- | ------------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Master user                               | RDS, when the instance is created     | Secrets Manager, under the secrets key, rotated by RDS                             | Administration, and creating application roles. Never by a service |
+| Application role, with IAM authentication | A migration run by the owning service | Nowhere. The service asks RDS for a token valid for 15 minutes, using its IAM role | The service                                                        |
+
+A service is allowed to connect by an IAM statement on `arn:aws:rds-db:<region>:<account>:dbuser:<resource id>/<role>`, where the resource id is published by the data layer. So access to a database is granted, reviewed and revoked in the same place as every other permission, and a leaked configuration file contains nothing that opens the database.
+
+`make data-check` connects with the master secret the way an administrator would: it finds the address and the secret in Parameter Store, reads the secret, and runs SQL. Application roles are created with the first service that needs one.
+
 ## How it is enforced
 
 | Rule                                                                             | Where                                                                                                                                                                         |
@@ -152,5 +166,7 @@ A missing parameter fails the plan with the parameter's name, which is the signa
 | A data store is not deleted or replaced outside dev without a recorded exception | Policy `POL-PROTECT-1`                                                                                                                                                        |
 | Stores are encrypted with the data key                                           | Each module, with tests, and the scanner                                                                                                                                      |
 | Stores are in the data subnets with the data security group                      | Each module's inputs, and the smoke test                                                                                                                                      |
+| Databases are private, encrypted, backed up, protected, and given no password    | The `postgres-database` module, and policies `POL-DB-1` to `POL-DB-5` for a database created any other way                                                                    |
+| A database can be reached and behaves as PostgreSQL                              | `make data-check`, in the pipeline after each apply                                                                                                                           |
 | Layers are applied and destroyed in order                                        | `scripts/layers.sh`, used by `make apply-all` and `make destroy-all`                                                                                                          |
 | A protected store cannot be destroyed by accident                                | Deletion protection follows `disposable`, which only dev sets. `make destroy-all` fails in staging and production, and `make teardown` is the deliberate two-step alternative |
