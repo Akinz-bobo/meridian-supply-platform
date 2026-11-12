@@ -112,3 +112,25 @@ variable "alarm_actions" {
   type        = list(string)
   default     = []
 }
+
+variable "backlog_alarm_minutes" {
+  description = "Raise an alarm when the oldest message in the queue has waited this long. It must be well inside retention_days, or messages are discarded before anyone is told."
+  type        = number
+  default     = 15
+
+  validation {
+    condition     = var.backlog_alarm_minutes >= 5 && var.backlog_alarm_minutes <= 1440
+    error_message = "backlog_alarm_minutes must be between 5 minutes and one day."
+  }
+}
+
+variable "delivery_retry_minutes" {
+  description = "How long the bus keeps trying to deliver an event to the queue before parking it in the dead-letter queue."
+  type        = number
+  default     = 60
+
+  validation {
+    condition     = var.delivery_retry_minutes >= 1 && var.delivery_retry_minutes <= 1440
+    error_message = "delivery_retry_minutes must be between 1 minute and 24 hours, which is the most EventBridge allows."
+  }
+}

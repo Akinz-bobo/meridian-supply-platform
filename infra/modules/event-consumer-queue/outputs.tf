@@ -33,6 +33,11 @@ output "alarm_name" {
   value       = aws_cloudwatch_metric_alarm.dead_letter.alarm_name
 }
 
+output "backlog_alarm_name" {
+  description = "Name of the alarm that fires when the oldest message has waited too long."
+  value       = aws_cloudwatch_metric_alarm.backlog.alarm_name
+}
+
 output "consume_policy_json" {
   description = "IAM policy that lets a role receive and acknowledge messages from the queue. It cannot send to it, purge it or read the dead-letter queue. Attach it to the consumer's workload role."
   value       = data.aws_iam_policy_document.consume.json

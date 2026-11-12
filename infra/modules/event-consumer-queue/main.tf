@@ -119,6 +119,25 @@ resource "aws_sqs_queue_policy" "this" {
 }
 
 data "aws_iam_policy_document" "dead_letter" {
+  # An event the bus could not deliver to the queue is sent here instead
+  # of being discarded. Only this module's rule may do that.
+  statement {
+    sid       = "TheRuleParksUndeliveredEvents"
+    actions   = ["sqs:SendMessage"]
+    resources = [local.dlq_arn]
+
+    principals {
+      type        = "Service"
+      identifiers = ["events.amazonaws.com"]
+    }
+
+    condition {
+      test     = "ArnEquals"
+      variable = "aws:SourceArn"
+      values   = [local.rule_arn]
+    }
+  }
+
   statement {
     sid       = "DenyInsecureTransport"
     effect    = "Deny"
@@ -162,7 +181,20 @@ resource "aws_cloudwatch_event_target" "this" {
   # wrapper EventBridge adds around it is of no use to a consumer.
   input_path = "$.detail"
 
-  depends_on = [aws_sqs_queue_policy.this]
+  # If the bus cannot deliver, because of a wrong policy or an unusable
+  # key, it retries for a while and then parks the event in the
+  # dead-letter queue. Without this it would discard the event after a
+  # day and record nothing.
+  retry_policy {
+    maximum_event_age_in_seconds = var.delivery_retry_minutes * 60
+    maximum_retry_attempts       = 185
+  }
+
+  dead_letter_config {
+    arn = aws_sqs_queue.dead_letter.arn
+  }
+
+  depends_on = [aws_sqs_queue_policy.this, aws_sqs_queue_policy.dead_letter]
 }
 
 # One message in a dead-letter queue is a failure someone must look at.
@@ -181,6 +213,31 @@ resource "aws_cloudwatch_metric_alarm" "dead_letter" {
   threshold           = 0
 
   # No data means the queue is empty, which is the healthy state.
+  treat_missing_data = "notBreaching"
+
+  alarm_actions = var.alarm_actions
+  ok_actions    = var.alarm_actions
+
+  tags = var.tags
+}
+
+# A consumer that is down or too slow fails nothing, so nothing reaches the
+# dead-letter queue. Messages just wait, and are discarded when retention
+# ends. This fires long before that.
+resource "aws_cloudwatch_metric_alarm" "backlog" {
+  alarm_name        = "${var.name}-backlog"
+  alarm_description = "The oldest message in ${var.name} has waited more than ${var.backlog_alarm_minutes} minutes. The consumer is down or cannot keep up. See docs/runbooks/dead-letter-queue.md."
+
+  namespace   = "AWS/SQS"
+  metric_name = "ApproximateAgeOfOldestMessage"
+  dimensions  = { QueueName = aws_sqs_queue.this.name }
+  statistic   = "Maximum"
+
+  period              = 300
+  evaluation_periods  = 1
+  comparison_operator = "GreaterThanThreshold"
+  threshold           = var.backlog_alarm_minutes * 60
+
   treat_missing_data = "notBreaching"
 
   alarm_actions = var.alarm_actions
