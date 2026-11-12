@@ -12,6 +12,7 @@ Notable changes, newest first. The format follows [Keep a Changelog](https://kee
 - Movement stream: a tested `event-stream` module with separate produce and consume policies, and the Kinesis stream for warehouse movements in every environment.
 - Event flow check: `make event-check` publishes events and follows them through fan-out, dead-lettering, redrive, alarm notification, the notifications topic and stream ordering, in the pipeline. A runbook for a message in a dead-letter queue.
 - Alarm subscriptions can be set per environment through `alarm_subscriptions`.
+- The threat model now covers messaging, and a messaging review records six findings, each fixed or tracked.
 
 ### Fixed
 
