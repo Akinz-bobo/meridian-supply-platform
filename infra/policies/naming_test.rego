@@ -129,3 +129,15 @@ test_denies_an_aws_log_group_for_an_unnamed_resource if {
 	some msg in messages
 	contains(msg, "POL-NAME-3")
 }
+
+test_denies_an_event_rule_without_the_prefix if {
+	rc := fixtures.create("aws_cloudwatch_event_rule", "r", {"name": "goods-received"})
+	messages := naming.deny with input as fixtures.plan("prod", [rc])
+	some msg in messages
+	contains(msg, "POL-NAME-1")
+}
+
+test_allows_an_event_rule_with_the_prefix if {
+	rc := fixtures.create("aws_cloudwatch_event_rule", "r", {"name": "meridian-prod-events-log-all"})
+	count(naming.deny) == 0 with input as fixtures.plan("prod", [rc])
+}
