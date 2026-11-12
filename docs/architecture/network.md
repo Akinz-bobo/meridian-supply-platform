@@ -5,6 +5,7 @@ How each environment's network is laid out, why, and how to check it. The networ
 - [Layout](#layout)
 - [Address plan](#address-plan)
 - [Routing](#routing)
+- [Security groups](#security-groups)
 - [Endpoints](#endpoints)
 - [Flow logs](#flow-logs)
 - [Design decisions](#design-decisions)
@@ -91,6 +92,18 @@ A network ACL sits in front of the data subnets as a second barrier:
 
 Everything else is denied by the ACL's implicit final rule.
 
+## Security groups
+
+Built by the [`tier-security-groups` module](../../infra/modules/tier-security-groups/README.md), which has the diagram and the rule table. Each tier has one group, and each allowed path is a pair of rules between two groups:
+
+```
+internet -> load balancer (443) -> application (8080) -> data (5432, 6379)
+```
+
+Rules name groups, not address ranges. A workload is allowed to reach the database because of what it is (a member of the application group), not because of where it happens to be. Moving a workload to another subnet changes nothing, and a host that lands in a private subnet without the application group gets nothing.
+
+Subnets and security groups are two separate controls, and both must fail for the data tier to be exposed: the route table gives it no path out, and its group accepts connections from the application group only.
+
 ## Endpoints
 
 Built by the [`vpc-endpoints` module](../../infra/modules/vpc-endpoints/README.md).
@@ -144,31 +157,36 @@ fields @timestamp, srcAddr, dstAddr, dstPort, action
 
 The `foundation` layer publishes the network to Parameter Store under `/meridian/<environment>/network/`:
 
-| Parameter                 | Type       | Used by                                       |
-| ------------------------- | ---------- | --------------------------------------------- |
-| `vpc-id`                  | String     | Security groups, load balancers, clusters     |
-| `vpc-cidr`                | String     | Security group rules for whole-VPC access     |
-| `availability-zones`      | StringList | Anything spread across zones                  |
-| `public-subnet-ids`       | StringList | Internet-facing load balancers                |
-| `private-subnet-ids`      | StringList | Workloads                                     |
-| `data-subnet-ids`         | StringList | Database and cache subnet groups              |
-| `private-route-table-ids` | StringList | Gateway endpoints                             |
-| `data-route-table-id`     | String     | Gateway endpoints                             |
-| `flow-log-group`          | String     | Queries and alarms on network traffic         |
-| `s3-prefix-list-id`       | String     | Security group rules that allow S3 only       |
-| `dynamodb-prefix-list-id` | String     | Security group rules that allow DynamoDB only |
+| Parameter                         | Type       | Used by                                                        |
+| --------------------------------- | ---------- | -------------------------------------------------------------- |
+| `vpc-id`                          | String     | Security groups, load balancers, clusters                      |
+| `vpc-cidr`                        | String     | Security group rules for whole-VPC access                      |
+| `availability-zones`              | StringList | Anything spread across zones                                   |
+| `public-subnet-ids`               | StringList | Internet-facing load balancers                                 |
+| `private-subnet-ids`              | StringList | Workloads                                                      |
+| `data-subnet-ids`                 | StringList | Database and cache subnet groups                               |
+| `private-route-table-ids`         | StringList | Gateway endpoints                                              |
+| `data-route-table-id`             | String     | Gateway endpoints                                              |
+| `flow-log-group`                  | String     | Queries and alarms on network traffic                          |
+| `s3-prefix-list-id`               | String     | Security group rules that allow S3 only                        |
+| `dynamodb-prefix-list-id`         | String     | Security group rules that allow DynamoDB only                  |
+| `load-balancer-security-group-id` | String     | Load balancers                                                 |
+| `application-security-group-id`   | String     | ECS services, EKS node groups, Lambda functions, EC2 instances |
+| `data-security-group-id`          | String     | Databases and caches                                           |
 
 Lists are in zone order: the first element is zone a.
 
 ## Verifying it
 
-| Check                                                                                                         | Where                                               |
-| ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| The address plan, and that no route targets the data table                                                    | Module tests, `make test`                           |
-| Network resources are named for their environment                                                             | Policy `POL-NAME-5`, `make policy`                  |
-| Three zones per tier, data table has only local and endpoint routes, every private table has a NAT route      | `make smoke`, which asks the EC2 API after an apply |
-| Gateway endpoints on four route tables, interface endpoints in three zones, an active flow log with retention | `make smoke`                                        |
-| Log groups have a retention period of at least 30 days                                                        | Policies `POL-LOG-1` and `POL-LOG-2`                |
+| Check                                                                                                          | Where                                               |
+| -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| The address plan, and that no route targets the data table                                                     | Module tests, `make test`                           |
+| Network resources are named for their environment                                                              | Policy `POL-NAME-5`, `make policy`                  |
+| Three zones per tier, data table has only local and endpoint routes, every private table has a NAT route       | `make smoke`, which asks the EC2 API after an apply |
+| Gateway endpoints on four route tables, interface endpoints in three zones, an active flow log with retention  | `make smoke`                                        |
+| Log groups have a retention period of at least 30 days                                                         | Policies `POL-LOG-1` and `POL-LOG-2`                |
+| Only the load balancer group is open to the internet, the data group has no egress, the default group is empty | `make smoke`                                        |
+| No ingress rule opens anything but 80 or 443 to the world, and every rule is described                         | Policies `POL-SG-1` and `POL-SG-2`                  |
 
 ## What the emulator does not prove
 
