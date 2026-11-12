@@ -27,6 +27,7 @@ locals {
     data_security_group_id = "network/data-security-group-id"
     data_key_arn           = "security/kms/data-key-arn"
     logs_key_arn           = "security/kms/logs-key-arn"
+    secrets_key_arn        = "security/kms/secrets-key-arn"
     workload_boundary_arn  = "security/iam/workload-boundary-arn"
   }
 }
