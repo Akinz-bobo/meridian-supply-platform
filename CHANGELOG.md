@@ -9,6 +9,7 @@ Notable changes, newest first. The format follows [Keep a Changelog](https://kee
 - Data layer: a `data` state layer in every environment that reads the foundation from Parameter Store, the data architecture document with classification, retention and recovery targets, and policy rule POL-TAG-4.
 - Object storage: a tested `data-bucket` module with access policies as outputs, and the supplier uploads bucket in every environment.
 - DynamoDB: a tested `dynamodb-table` module with access policies as outputs, the movement ledger and stock level tables in every environment, the inventory data model, and `make data-check`, which exercises the key design in the pipeline.
+- PostgreSQL: a tested `postgres-database` module with RDS-managed credentials, enforced TLS, backups and logs, the catalog database in every environment, a database check in `make data-check`, and policy rules POL-DB-1 to POL-DB-5.
 
 ## [0.3.0] - 2026-11-12
 
