@@ -259,6 +259,24 @@ check 'its log group has retention and the logs key' jq -e --arg k "$logs_key_ar
   '.logGroups[0] | .retentionInDays >= 30 and .kmsKeyId == $k' \
   <<<"$(as_account "$account" aws logs describe-log-groups --log-group-name-prefix "/aws/rds/instance/meridian-$environment-catalog-db/postgresql" --output json 2>/dev/null || echo '{}')"
 
+# Data layer: the stock cache.
+cache="$(as_account "$account" aws elasticache describe-replication-groups \
+  --replication-group-id "meridian-$environment-inventory-cache" --output json 2>/dev/null |
+  jq -c '.ReplicationGroups[0] // {}' || echo '{}')"
+check 'the stock cache is available' jq -e '.Status == "available"' <<<"$cache"
+check 'it is encrypted at rest with the data key' jq -e --arg k "$data_key_arn" \
+  '.AtRestEncryptionEnabled and .KmsKeyId == $k' <<<"$cache"
+check 'it encrypts connections' jq -e '.TransitEncryptionEnabled' <<<"$cache"
+check 'it has no shared auth token' jq -e '.AuthTokenEnabled == false' <<<"$cache"
+check 'it admits clients through its user group' jq -e --arg g "meridian-$environment-inventory-cache" \
+  '.UserGroupIds == [$g]' <<<"$cache"
+check 'every cache user authenticates with IAM' jq -e \
+  '[.Users[]? | .Authentication.Type] | length > 0 and all(. == "iam")' \
+  <<<"$(as_account "$account" aws elasticache describe-users --output json 2>/dev/null || echo '{}')"
+if [ "$disposable" != true ]; then
+  check 'it has a replica to fail over to' jq -e '(.MemberClusters | length) >= 2' <<<"$cache"
+fi
+
 while IFS= read -r layer; do
   check "state for the $layer layer is in the shared bucket" \
     as_account "$state_account" aws s3api head-object --bucket "$state_bucket" --key "$1/$layer/terraform.tfstate"
