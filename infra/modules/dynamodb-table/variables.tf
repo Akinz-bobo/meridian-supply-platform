@@ -23,6 +23,17 @@ variable "account_id" {
   }
 }
 
+variable "store_tags" {
+  description = "Extra tags for the table only, and not for the resources around it. Use it for the tag that opts the store in to a backup plan."
+  type        = map(string)
+  default     = {}
+
+  validation {
+    condition     = !contains(keys(var.store_tags), "DataClassification")
+    error_message = "Set the classification with data_classification, not with a tag."
+  }
+}
+
 variable "data_classification" {
   description = "How sensitive the contents are: public, internal, confidential or restricted. Becomes the DataClassification tag."
   type        = string
