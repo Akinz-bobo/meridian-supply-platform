@@ -50,6 +50,7 @@ module "vpc_flow_logs" {
   account_id        = var.aws_account_id
   log_group_name    = "/${var.project}/${var.environment}/network/flow-logs"
   retention_in_days = var.log_retention_days
+  kms_key_arn       = module.kms_key["logs"].key_arn
 }
 
 # One security group per tier. Workload and data store modules attach these
