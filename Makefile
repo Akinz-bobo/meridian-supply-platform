@@ -112,8 +112,9 @@ smoke: ## Check that the applied ENV looks right, by asking the AWS API
 	@./scripts/smoke-test.sh $(ENV)
 
 .PHONY: data-check
-data-check: ## Exercise the inventory tables' key design in ENV: idempotency, never negative, expiry order
+data-check: ## Use the stores of ENV the way a service would: the inventory key design, and SQL on the catalog database
 	@./scripts/data-model-check.sh $(ENV)
+	@./scripts/database-check.sh $(ENV)
 
 .PHONY: state-audit
 state-audit: ## Fail if the remote state of ENV holds a secret value
