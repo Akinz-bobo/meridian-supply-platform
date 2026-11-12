@@ -87,7 +87,7 @@ make up && make bootstrap
 make apply-all ENV=dev        # every layer, in order
 make smoke ENV=dev            # ask the API whether it looks right
 make state-audit ENV=dev      # check that no secret value is in the remote state
-make data-check ENV=dev       # exercise the inventory tables' key design
+make data-check ENV=dev       # use the stores the way a service would
 make test-emulator            # module apply tests
 make report                   # plan all environments, check policies, write plan-report.md
 make destroy-all ENV=dev      # every layer, in reverse
@@ -178,6 +178,7 @@ Split such a change in two: publish the parameter first, then consume it. That i
 | Smoke test            | The environment applied but does not look right                                                                                                    | Run `make smoke ENV=<env>` locally. Each check prints what it expected                                                                                                                                                                    |
 | State audit           | A resource was given a secret value through an ordinary argument, so the value is in state                                                         | Use a write-only argument or set the value outside Terraform. See [secrets and configuration](../architecture/secrets-and-configuration.md#secret-values-and-terraform-state). The value in state must be treated as exposed and replaced |
 | Data model check      | A change to a table's keys or indexes broke an access pattern, or a condition no longer protects a rule                                            | Run `make data-check ENV=<env>` locally. The failing line names the rule. See the [inventory data model](../architecture/inventory-data-model.md)                                                                                         |
+| Database check        | The database cannot be reached with the credentials RDS manages, or does not behave as PostgreSQL should                                           | Run `make data-check ENV=<env>` locally. It needs `psql`. Check that the address and secret are published under `/meridian/<env>/catalog/`                                                                                                |
 | Module apply tests    | A module cannot be created, changed or destroyed in the emulator                                                                                   | Run `make test-emulator` locally                                                                                                                                                                                                          |
 | Rehearse the teardown | Something cannot be destroyed: a dependency Terraform does not know about, or a deletion protection that does not follow the `disposable` variable | Add the missing dependency. For a new protected store, make its protections follow `var.disposable` in the layer, as the existing stores do                                                                                               |
 
