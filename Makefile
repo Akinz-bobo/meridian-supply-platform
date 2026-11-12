@@ -93,6 +93,16 @@ apply-all: ## Apply every layer of ENV, in dependency order
 destroy-all: ## Destroy every layer of ENV, in reverse order
 	@./scripts/each-layer.sh destroy $(ENV)
 
+# Protections against data loss (deletion protection, final snapshots,
+# refusing to empty a bucket) make destroy-all fail outside dev, which is
+# their job. Decommissioning is therefore two deliberate steps: apply with
+# the protections lifted, then destroy.
+.PHONY: teardown
+teardown: ## Lift ENV's deletion protections, then destroy every layer. For rehearsals and for decommissioning
+	@echo "Lifting deletion protections in $(ENV), then destroying it."
+	@TF_VAR_disposable=true ./scripts/each-layer.sh apply $(ENV)
+	@TF_VAR_disposable=true ./scripts/each-layer.sh destroy $(ENV)
+
 .PHONY: report
 report: ## Plan every layer of ENVS, check policies and write plan-report.md
 	@./scripts/plan-report.sh plan-report.md $(ENVS)
