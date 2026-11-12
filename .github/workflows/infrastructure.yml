@@ -189,11 +189,24 @@ jobs:
 
   # On merge the environments are applied one after another, on purpose. It
   # is a promotion: each must pass before the next begins.
+  #
+  # One job per environment, and never more than one at a time. They run in
+  # the order listed. If one fails, the ones after it are cancelled before
+  # they start, which is the gate. Each has its own emulator and its own
+  # time limit: as a single job, the three together had come within five
+  # minutes of the limit.
   apply:
-    name: Apply
+    name: Apply ${{ matrix.environment }}
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      max-parallel: 1
+      fail-fast: true
+      matrix:
+        environment: [dev, staging, production]
+    env:
+      ENVIRONMENT: ${{ matrix.environment }}
     steps:
       - uses: actions/checkout@v4
 
@@ -205,25 +218,17 @@ jobs:
       - name: Create the state bucket
         run: make bootstrap
 
-      - name: Apply and verify each environment
+      - name: Apply and verify the environment
         run: |
-          {
-            echo '## Applied'
-            echo
-            echo '| Environment | Result |'
-            echo '| --- | --- |'
-          } >> "$GITHUB_STEP_SUMMARY"
-          for environment in $ENVIRONMENTS; do
-            echo "::group::apply $environment"
-            make apply-all ENV="$environment"
-            echo "::endgroup::"
-            make smoke ENV="$environment"
-            make state-audit ENV="$environment"
-            make data-check ENV="$environment"
-            make event-check ENV="$environment"
-            make compute-check ENV="$environment"
-            echo "| \`$environment\` | applied, smoke test, data, event and compute checks passed, no secrets in state |" >> "$GITHUB_STEP_SUMMARY"
-          done
+          echo "::group::apply $ENVIRONMENT"
+          make apply-all ENV="$ENVIRONMENT"
+          echo "::endgroup::"
+          make smoke ENV="$ENVIRONMENT"
+          make state-audit ENV="$ENVIRONMENT"
+          make data-check ENV="$ENVIRONMENT"
+          make event-check ENV="$ENVIRONMENT"
+          make compute-check ENV="$ENVIRONMENT"
+          echo "\`$ENVIRONMENT\`: applied. Smoke test, data, event and compute checks passed, and no secrets in state." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Show emulator logs on failure
         if: failure()
