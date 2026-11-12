@@ -11,6 +11,7 @@ Notable changes, newest first. The format follows [Keep a Changelog](https://kee
 - DynamoDB: a tested `dynamodb-table` module with access policies as outputs, the movement ledger and stock level tables in every environment, the inventory data model, and `make data-check`, which exercises the key design in the pipeline.
 - Pipeline: each environment is rehearsed in a parallel job with its own emulator, the three plan reports are joined into one comment, and the Terraform setup is a shared composite action.
 - PostgreSQL: a tested `postgres-database` module with RDS-managed credentials, enforced TLS, backups and logs, the catalog database in every environment, a database check in `make data-check`, and policy rules POL-DB-1 to POL-DB-5.
+- Cache: a tested `redis-cache` module running Valkey with IAM-authenticated users and no shared password, the stock cache in every environment, a check of the access rule against a real Valkey server, and policy rules POL-CACHE-1 to POL-CACHE-4.
 
 ### Fixed
 
