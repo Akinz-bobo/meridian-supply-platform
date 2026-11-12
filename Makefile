@@ -128,6 +128,19 @@ data-check: ## Use the stores of ENV the way a service would: key design, SQL, c
 event-check: ## Send events through ENV and follow them: fan-out, dead-letter, redrive, alarms, notifications, stream order
 	@./scripts/event-check.sh $(ENV)
 
+SERVICE ?= sample
+
+.PHONY: image
+image: ## Build SERVICE and push its image to the repository of ENV. Prints the image reference
+	@./scripts/push-image.sh $(ENV) $(SERVICE)
+
+.PHONY: service-test
+service-test: ## Run the unit tests of every service
+	@for service in services/*/; do \
+	  echo "== $$service"; \
+	  python3 -m unittest discover --start-directory "$$service/tests" --pattern 'test_*.py' || exit 1; \
+	done
+
 .PHONY: state-audit
 state-audit: ## Fail if the remote state of ENV holds a secret value
 	@./scripts/state-audit.sh $(ENV)
