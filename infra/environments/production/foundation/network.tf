@@ -25,8 +25,9 @@ module "vpc" {
 }
 
 # Private paths to AWS services. The gateway endpoints are attached to the
-# private and data route tables, which is what lets the data tier reach S3
-# and DynamoDB with no route to the internet.
+# private route tables only. The data tier holds managed databases and
+# caches, which never open connections of their own, and its network ACL
+# allows traffic to the VPC and nowhere else.
 module "vpc_endpoints" {
   source = "../../../modules/vpc-endpoints"
 
@@ -34,8 +35,9 @@ module "vpc_endpoints" {
   tags = module.network_context.tags
 
   vpc_id             = module.vpc.vpc_id
+  account_id         = var.aws_account_id
   vpc_cidr_block     = module.vpc.cidr_block
-  route_table_ids    = concat(module.vpc.private_route_table_ids, [module.vpc.data_route_table_id])
+  route_table_ids    = module.vpc.private_route_table_ids
   subnet_ids         = module.vpc.private_subnet_ids
   interface_services = var.interface_endpoint_services
 }
