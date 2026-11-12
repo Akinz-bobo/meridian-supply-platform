@@ -10,6 +10,7 @@ Which store holds what, how sensitive it is, how long it is kept and how it is r
 - [The data layer](#the-data-layer)
 - [Database credentials](#database-credentials)
 - [Cache access](#cache-access)
+- [Backups](#backups)
 - [How it is enforced](#how-it-is-enforced)
 
 ## Stores
@@ -181,17 +182,32 @@ Not granting scripting matters as much as the key pattern: a script runs with th
 
 `make data-check` reads the rule from ElastiCache, loads it into a throwaway Valkey server of the same major version, and checks that a client limited by it can read, write, expire and delete under `stock:`, and cannot touch another prefix, list keys, flush, read configuration, manage users, shut the server down or run a script.
 
+## Backups
+
+Each store protects itself, and a central plan keeps a second copy.
+
+| Layer            | What                                                                    | Kept          | Protects against                                |
+| ---------------- | ----------------------------------------------------------------------- | ------------- | ----------------------------------------------- |
+| The store's own  | Point-in-time recovery for databases and tables, versioning for buckets | 14 to 35 days | Bad writes, deleted rows, an overwritten object |
+| The backup vault | A daily copy of every store tagged `Backup = daily`                     | 35 days       | Losing the store and its own backups together   |
+
+Tagged today: the catalog database and the movement ledger. Not tagged, on purpose: stock levels, which are rebuilt from the ledger, and the cache, which is rebuilt from the tables.
+
+The vault has its own key, a policy that stops anyone deleting a recovery point by hand, and outside dev a lock on minimum retention. The role that takes backups cannot restore or delete. How to restore each kind of store is in the [restore runbook](../runbooks/restore.md), which also says what has not been tested.
+
 ## How it is enforced
 
-| Rule                                                                             | Where                                                                                                                                                                         |
-| -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Every data store carries a `DataClassification` from the scheme                  | Policy `POL-TAG-4`                                                                                                                                                            |
-| A data store is not deleted or replaced outside dev without a recorded exception | Policy `POL-PROTECT-1`                                                                                                                                                        |
-| Stores are encrypted with the data key                                           | Each module, with tests, and the scanner                                                                                                                                      |
-| Stores are in the data subnets with the data security group                      | Each module's inputs, and the smoke test                                                                                                                                      |
-| Databases are private, encrypted, backed up, protected, and given no password    | The `postgres-database` module, and policies `POL-DB-1` to `POL-DB-5` for a database created any other way                                                                    |
-| A database can be reached and behaves as PostgreSQL                              | `make data-check`, in the pipeline after each apply                                                                                                                           |
-| Caches are encrypted and have no shared password                                 | The `redis-cache` module, and policies `POL-CACHE-1` to `POL-CACHE-4` for a cache created any other way                                                                       |
-| A cache user is confined to its key prefix and to safe commands                  | Module validation on the access string, and `make data-check` against a real Valkey server                                                                                    |
-| Layers are applied and destroyed in order                                        | `scripts/layers.sh`, used by `make apply-all` and `make destroy-all`                                                                                                          |
-| A protected store cannot be destroyed by accident                                | Deletion protection follows `disposable`, which only dev sets. `make destroy-all` fails in staging and production, and `make teardown` is the deliberate two-step alternative |
+| Rule                                                                                                 | Where                                                                                                                                                                         |
+| ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Every data store carries a `DataClassification` from the scheme                                      | Policy `POL-TAG-4`                                                                                                                                                            |
+| A data store is not deleted or replaced outside dev without a recorded exception                     | Policy `POL-PROTECT-1`                                                                                                                                                        |
+| Stores are encrypted with the data key                                                               | Each module, with tests, and the scanner                                                                                                                                      |
+| Stores are in the data subnets with the data security group                                          | Each module's inputs, and the smoke test                                                                                                                                      |
+| Databases are private, encrypted, backed up, protected, and given no password                        | The `postgres-database` module, and policies `POL-DB-1` to `POL-DB-5` for a database created any other way                                                                    |
+| A database can be reached and behaves as PostgreSQL                                                  | `make data-check`, in the pipeline after each apply                                                                                                                           |
+| Caches are encrypted and have no shared password                                                     | The `redis-cache` module, and policies `POL-CACHE-1` to `POL-CACHE-4` for a cache created any other way                                                                       |
+| A cache user is confined to its key prefix and to safe commands                                      | Module validation on the access string, and `make data-check` against a real Valkey server                                                                                    |
+| The backup plan selects exactly the stores meant to be backed up, and a backup lands in the vault    | `make data-check`                                                                                                                                                             |
+| The vault is encrypted with its own key, forbids deleting recovery points, and is locked outside dev | `make smoke`                                                                                                                                                                  |
+| Layers are applied and destroyed in order                                                            | `scripts/layers.sh`, used by `make apply-all` and `make destroy-all`                                                                                                          |
+| A protected store cannot be destroyed by accident                                                    | Deletion protection follows `disposable`, which only dev sets. `make destroy-all` fails in staging and production, and `make teardown` is the deliberate two-step alternative |
