@@ -147,3 +147,8 @@ variable "alarm_subscriptions" {
   }))
   default = {}
 }
+
+variable "domain_name" {
+  description = "Host name the environment is served under. The load balancer's certificate is issued for it."
+  type        = string
+}

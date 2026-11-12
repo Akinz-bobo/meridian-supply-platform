@@ -24,3 +24,7 @@ disposable = false
 # Data stores. Production keeps two cache replicas, one in each other zone.
 
 cache_replicas = 2
+
+# Where the environment is served. The .example domain is reserved for
+# documentation: replace it with a domain you control.
+domain_name = "meridian.example"
