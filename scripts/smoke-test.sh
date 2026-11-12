@@ -381,6 +381,18 @@ check 'it keeps records for three days' jq -e '.RetentionPeriodHours == 72' <<<"
 check 'its name is published for the inventory service' \
   as_account "$account" aws ssm get-parameter --name "/meridian/$environment/inventory/movement-stream-name"
 
+# Compute layer: the registry.
+repository="$(as_account "$account" aws ecr describe-repositories --repository-names "meridian-$environment-sample" \
+  --output json 2>/dev/null | jq -c '.repositories[0] // {}' || echo '{}')"
+check 'the sample image repository exists' jq -e '.repositoryName != null' <<<"$repository"
+check 'its tags cannot be overwritten' jq -e '.imageTagMutability == "IMMUTABLE"' <<<"$repository"
+check 'it scans images when they are pushed' jq -e '.imageScanningConfiguration.scanOnPush' <<<"$repository"
+check 'it is encrypted with the data key' jq -e --arg k "$data_key_arn" \
+  '.encryptionConfiguration | .encryptionType == "KMS" and .kmsKey == $k' <<<"$repository"
+check 'it removes untagged images and keeps a bounded number of tagged ones' jq -e \
+  '.lifecyclePolicyText | fromjson | .rules | length == 2 and any(.selection.tagStatus == "untagged")' \
+  <<<"$(as_account "$account" aws ecr get-lifecycle-policy --repository-name "meridian-$environment-sample" --output json 2>/dev/null || echo '{}')"
+
 while IFS= read -r layer; do
   check "state for the $layer layer is in the shared bucket" \
     as_account "$state_account" aws s3api head-object --bucket "$state_bucket" --key "$1/$layer/terraform.tfstate"
