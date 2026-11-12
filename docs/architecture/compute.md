@@ -2,12 +2,13 @@
 
 Where workloads run, how their images get there, and what every container is expected to be. The choice of platform per workload is [decision record 0005](../adr/0005-compute-model-per-workload.md).
 
-This document grows through milestone 5. It covers the layer, images and the sample service. The load balancer, ECS, EKS and the gateway host are added as they are built.
+This document grows through milestone 5. It covers the layer, images, the sample service and the load balancer. ECS, EKS and the gateway host are added as they are built.
 
 - [The compute layer](#the-compute-layer)
 - [Images](#images)
 - [What every container must be](#what-every-container-must-be)
 - [The sample service](#the-sample-service)
+- [The way in](#the-way-in)
 - [How it is enforced](#how-it-is-enforced)
 - [What the emulator does not prove](#what-the-emulator-does-not-prove)
 
@@ -66,6 +67,30 @@ These apply to every service, and the platform modules enforce what they can.
 
 [`services/sample`](../../services/sample/README.md) is a container that does nothing useful and meets every requirement above. It is what milestone 5 deploys to prove each platform, and its `/identity` endpoint reports which role the platform gave it, without ever returning a credential. Real services replace it from milestone 6 on.
 
+## The way in
+
+One application load balancer per environment, built by the [`load-balancer` module](../../infra/modules/load-balancer/README.md). It is the only thing in the environment that accepts traffic from outside the VPC.
+
+```mermaid
+flowchart LR
+    client((Client)) -- "HTTPS 443<br/>TLS 1.2 or 1.3" --> lb[Load balancer<br/>public subnets]
+    lb -- "/sample/*" --> s1[Sample service]
+    lb -- "/catalog/*" --> s2[Catalog, later]
+    lb -- "anything else" --> refuse[404 from the load balancer]
+```
+
+| Decision                                                            | Reason                                                                                                                                                |
+| ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| One load balancer, routed by path                                   | One certificate, one entry point to defend and to watch. A service is added with a rule, not with another public endpoint                             |
+| The default action is a refusal                                     | A path with no rule should not reach whichever service was attached first                                                                             |
+| No plain HTTP at all                                                | The load balancer security group opens 443 only. There is nothing on port 80 to redirect from                                                         |
+| TLS ends at the load balancer                                       | Certificates live in one place. Traffic from the load balancer to a service stays inside the VPC, in the private subnets, between two security groups |
+| The certificate is requested by the layer and validated through DNS | ACM renews it without anyone acting, as long as the validation record stays in the zone                                                               |
+
+The domain is a value of the environment: `dev.meridian.example`, `staging.meridian.example` and `meridian.example`. The `.example` domain is reserved for documentation. A real deployment sets a domain it controls and adds the validation record ACM asks for.
+
+**What is not here yet.** Access logs need a log archive bucket, and a web application firewall in front of the load balancer is a hardening step. Both are noted for the review at the end of this milestone.
+
 ## How it is enforced
 
 | Rule                                                                            | Where                                                      |
@@ -80,3 +105,6 @@ These apply to every service, and the platform modules enforce what they can.
 
 - **Immutability, scanning and the lifecycle policy.** They are stored and not applied. The same tag can be pushed twice. Difference 30.
 - **The registry's address.** Pushes go to the registry container directly. Difference 29.
+- **Certificate validation.** The emulator issues a certificate at once. On AWS it stays pending until the DNS record exists. Difference 31.
+
+The load balancer itself does behave: over HTTPS it returned the fixed refusal for an unmatched path, and it rejected plain HTTP on the same port.
