@@ -15,3 +15,12 @@ misconfigurations:
       all, and the destination is reviewed in the network and security
       baseline review. Filtering by domain name would need an egress proxy
       or a network firewall, which is recorded there as a possible hardening.
+  - id: AVD-AWS-0345
+    paths:
+      - 'modules/access-roles/main.tf'
+    statement: >-
+      Accepted. The deploy role runs Terraform, which manages every resource
+      type the platform uses, S3 included. The role is limited to one region,
+      cannot create a role without the workload boundary and cannot change
+      its own permissions. The same exception is recorded for the policy
+      check POL-IAM-2 in infra/policies/data/exceptions.yaml.
