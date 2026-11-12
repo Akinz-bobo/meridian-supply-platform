@@ -157,6 +157,10 @@ shellcheck: ## Lint the shell scripts, as CI does
 	else docker run --rm --volume "$(CURDIR):/mnt:ro" --workdir /mnt koalaman/shellcheck:v0.10.0 scripts/*.sh; fi
 	@echo 'Shell scripts are clean.'
 
+.PHONY: contract-test
+contract-test: ## Test the event contracts and their validator
+	@python3 -m unittest discover --start-directory scripts/tests --pattern 'test_*.py'
+
 .PHONY: policy-test
 policy-test: ## Run the tests of the policies themselves
 	conftest fmt --check infra/policies
@@ -179,7 +183,7 @@ module: ## Create the skeleton of a new module: make module NAME=sqs-consumer-qu
 	@./scripts/new-module.sh $(NAME)
 
 .PHONY: check
-check: validate lint scan test policy-test docs-check ## Every infrastructure check that needs no emulator
+check: validate lint scan test policy-test contract-test docs-check ## Every infrastructure check that needs no emulator
 
 .PHONY: test
 test: ## Run the plan tests of every module. Needs nothing running
