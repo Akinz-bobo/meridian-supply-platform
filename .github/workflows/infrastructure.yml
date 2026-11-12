@@ -13,6 +13,7 @@ on:
       - 'compose.yaml'
       - '.terraform-version'
       - '.github/workflows/infrastructure.yml'
+      - '.github/actions/**'
   pull_request:
     paths:
       - 'infra/**'
@@ -21,6 +22,7 @@ on:
       - 'compose.yaml'
       - '.terraform-version'
       - '.github/workflows/infrastructure.yml'
+      - '.github/actions/**'
 
 concurrency:
   # One run at a time per branch. A run on main is never cancelled halfway
@@ -32,45 +34,36 @@ permissions:
   contents: read
 
 env:
+  # Promotion order. The apply on merge goes through them one at a time.
   ENVIRONMENTS: dev staging production
   TF_IN_AUTOMATION: 'true'
   TF_INPUT: '0'
 
 jobs:
-  plan:
-    name: Plan, policy and rehearsal
+  # One job per environment, in parallel, each with an emulator of its own.
+  # The time a pull request waits is that of the slowest environment, not
+  # the sum of all three.
+  rehearse:
+    name: Rehearse ${{ matrix.environment }}
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    permissions:
-      contents: read
-      pull-requests: write
+    strategy:
+      # One environment failing says nothing about the others. Let them
+      # finish, so the plan comment is complete.
+      fail-fast: false
+      matrix:
+        environment: [dev, staging, production]
+    env:
+      ENVIRONMENT: ${{ matrix.environment }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Read the pinned Terraform version
-        id: version
-        run: echo "terraform=$(cat .terraform-version)" >> "$GITHUB_OUTPUT"
-
-      - uses: hashicorp/setup-terraform@v3
+      - uses: ./.github/actions/setup-terraform
         with:
-          terraform_version: ${{ steps.version.outputs.terraform }}
-          terraform_wrapper: false
-
-      - name: Cache providers
-        uses: actions/cache@v4
-        with:
-          path: ~/.terraform.d/plugin-cache
-          key: terraform-providers-${{ hashFiles('infra/**/.terraform.lock.hcl') }}
-
-      - name: Install the pinned tools
-        run: |
-          mkdir -p ~/.terraform.d/plugin-cache
-          echo "TF_PLUGIN_CACHE_DIR=$HOME/.terraform.d/plugin-cache" >> "$GITHUB_ENV"
-          BIN_DIR="$HOME/.local/bin" ./scripts/install-tools.sh conftest
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          tools: conftest
 
       - name: Start the emulator
         run: make up
@@ -84,58 +77,46 @@ jobs:
       - name: Apply the base branch
         run: |
           git worktree add --detach "$RUNNER_TEMP/base" "origin/${{ github.base_ref }}"
-          for environment in $ENVIRONMENTS; do
-            for layer in foundation data messaging compute services; do
-              if [ -f "$RUNNER_TEMP/base/infra/environments/$environment/$layer/main.tf" ]; then
-                echo "::group::base: apply $environment/$layer"
-                make -C "$RUNNER_TEMP/base" apply ENV="$environment" LAYER="$layer"
-                echo "::endgroup::"
-              fi
-            done
+          for layer in $("$RUNNER_TEMP/base/scripts/layers.sh" "$ENVIRONMENT"); do
+            echo "::group::base: apply $ENVIRONMENT/$layer"
+            make -C "$RUNNER_TEMP/base" apply ENV="$ENVIRONMENT" LAYER="$layer"
+            echo "::endgroup::"
           done
 
       - name: Plan the pull request and check policies
         id: report
         run: |
           status=0
-          make report ENVS="$ENVIRONMENTS" || status=$?
+          make report ENVS="$ENVIRONMENT" || status=$?
           cat plan-report.md >> "$GITHUB_STEP_SUMMARY"
           echo "status=$status" >> "$GITHUB_OUTPUT"
 
-      - name: Comment the plan on the pull request
-        # A pull request from a fork gets a read-only token and cannot comment.
-        continue-on-error: true
-        run: ./scripts/pr-comment.sh "${{ github.event.pull_request.number }}" plan-report.md
-        env:
-          GH_TOKEN: ${{ github.token }}
+      # Collected by the comment job, which joins the three into one.
+      - name: Keep the plan report
+        if: always() && steps.report.outcome != 'skipped'
+        uses: actions/upload-artifact@v4
+        with:
+          name: plan-report-${{ matrix.environment }}
+          path: plan-report.md
+          retention-days: 7
 
       - name: Fail if a plan failed or violated a policy
         if: steps.report.outputs.status != '0'
         run: |
-          echo "::error::A plan failed or violated a policy. See the plan comment on the pull request."
+          echo "::error::A plan for $ENVIRONMENT failed or violated a policy. See the plan comment on the pull request."
           exit 1
 
       - name: Rehearse the apply
         run: |
-          for environment in $ENVIRONMENTS; do
-            echo "::group::apply $environment"
-            make apply-all ENV="$environment"
-            echo "::endgroup::"
-            make smoke ENV="$environment"
-            make state-audit ENV="$environment"
-            make data-check ENV="$environment"
-          done
-
-      - name: Run module apply tests
-        run: make test-emulator
+          echo "::group::apply $ENVIRONMENT"
+          make apply-all ENV="$ENVIRONMENT"
+          echo "::endgroup::"
+          make smoke ENV="$ENVIRONMENT"
+          make state-audit ENV="$ENVIRONMENT"
+          make data-check ENV="$ENVIRONMENT"
 
       - name: Rehearse the teardown
-        run: |
-          for environment in $ENVIRONMENTS; do
-            echo "::group::teardown $environment"
-            make teardown ENV="$environment"
-            echo "::endgroup::"
-          done
+        run: make teardown ENV="$ENVIRONMENT"
 
       - name: Show emulator logs on failure
         if: failure()
@@ -145,6 +126,68 @@ jobs:
         if: always()
         run: make down
 
+  # Module apply tests use an account of their own and no environment, so
+  # they run once and not once per environment.
+  module-apply-tests:
+    name: Module apply tests
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-terraform
+
+      - name: Start the emulator
+        run: make up
+
+      - name: Run module apply tests
+        run: make test-emulator
+
+      - name: Show emulator logs on failure
+        if: failure()
+        run: docker compose logs --tail 200
+
+      - name: Stop the emulator
+        if: always()
+        run: make down
+
+  # Joins the three plan reports into the single comment on the pull request.
+  comment:
+    name: Plan comment
+    if: always() && github.event_name == 'pull_request'
+    needs: rehearse
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: plan-report-*
+          path: reports
+
+      - name: Join the reports
+        run: |
+          files=()
+          for environment in $ENVIRONMENTS; do
+            files+=("reports/plan-report-$environment/plan-report.md")
+          done
+          ./scripts/plan-report-merge.sh plan-report.md "${files[@]}"
+          cat plan-report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment the plan on the pull request
+        # A pull request from a fork gets a read-only token and cannot comment.
+        continue-on-error: true
+        run: ./scripts/pr-comment.sh "${{ github.event.pull_request.number }}" plan-report.md
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  # On merge the environments are applied one after another, on purpose. It
+  # is a promotion: each must pass before the next begins.
   apply:
     name: Apply
     if: github.event_name == 'push'
@@ -153,25 +196,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Read the pinned Terraform version
-        id: version
-        run: echo "terraform=$(cat .terraform-version)" >> "$GITHUB_OUTPUT"
-
-      - uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ steps.version.outputs.terraform }}
-          terraform_wrapper: false
-
-      - name: Cache providers
-        uses: actions/cache@v4
-        with:
-          path: ~/.terraform.d/plugin-cache
-          key: terraform-providers-${{ hashFiles('infra/**/.terraform.lock.hcl') }}
-
-      - name: Use the provider cache
-        run: |
-          mkdir -p ~/.terraform.d/plugin-cache
-          echo "TF_PLUGIN_CACHE_DIR=$HOME/.terraform.d/plugin-cache" >> "$GITHUB_ENV"
+      - uses: ./.github/actions/setup-terraform
 
       - name: Start the emulator
         run: make up
@@ -179,8 +204,6 @@ jobs:
       - name: Create the state bucket
         run: make bootstrap
 
-      # Environments are applied in promotion order, and each must pass its
-      # smoke test before the next one starts.
       - name: Apply and verify each environment
         run: |
           {
@@ -196,7 +219,7 @@ jobs:
             make smoke ENV="$environment"
             make state-audit ENV="$environment"
             make data-check ENV="$environment"
-            echo "| \`$environment\` | applied, smoke test and data model check passed, no secrets in state |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| \`$environment\` | applied, smoke test and data checks passed, no secrets in state |" >> "$GITHUB_STEP_SUMMARY"
           done
 
       - name: Show emulator logs on failure
