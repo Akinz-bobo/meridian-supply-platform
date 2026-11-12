@@ -301,6 +301,26 @@ check 'the backup role carries a boundary' jq -e \
   '.Role.PermissionsBoundary.PermissionsBoundaryArn | endswith("AWSBackupServiceRolePolicyForBackup")' \
   <<<"$(as_account "$account" aws iam get-role --role-name "meridian-$environment-backup-role" --output json 2>/dev/null || echo '{}')"
 
+# Messaging layer: the event bus.
+bus="meridian-$environment-events"
+messaging_key_arn="$(as_account "$account" aws kms describe-key --key-id "alias/meridian-$environment-messaging" \
+  --output json 2>/dev/null | jq -r '.KeyMetadata.Arn // empty' || true)"
+described_bus="$(as_account "$account" aws events describe-event-bus --name "$bus" --output json 2>/dev/null || echo '{}')"
+check "the event bus $bus exists" jq -e --arg b "$bus" '.Name == $b' <<<"$described_bus"
+check 'its policy refuses publishers from outside the account' jq -e --arg a "$account" \
+  '.Policy | fromjson | any(.Statement[]; .Effect == "Deny" and .Action == "events:PutEvents"
+    and .Condition.StringNotEquals["aws:PrincipalAccount"] == $a)' <<<"$described_bus"
+check 'events are archived for replay' jq -e '.State == "ENABLED" and .RetentionDays >= 7' \
+  <<<"$(as_account "$account" aws events describe-archive --archive-name "$bus" --output json 2>/dev/null || echo '{}')"
+check 'a rule sends every platform event to the event log' jq -e \
+  '.EventPattern | fromjson | .source[0].prefix == "meridian."' \
+  <<<"$(as_account "$account" aws events describe-rule --name "$bus-log-all" --event-bus-name "$bus" --output json 2>/dev/null || echo '{}')"
+check 'the event log has retention and the logs key' jq -e --arg k "$logs_key_arn" \
+  '.logGroups[0] | .retentionInDays >= 30 and .kmsKeyId == $k' \
+  <<<"$(as_account "$account" aws logs describe-log-groups --log-group-name-prefix "/aws/events/$bus" --output json 2>/dev/null || echo '{}')"
+check 'the bus name is published for services' \
+  as_account "$account" aws ssm get-parameter --name "/meridian/$environment/events/bus-name"
+
 while IFS= read -r layer; do
   check "state for the $layer layer is in the shared bucket" \
     as_account "$state_account" aws s3api head-object --bucket "$state_bucket" --key "$1/$layer/terraform.tfstate"
