@@ -196,7 +196,7 @@ run "the_policies_name_this_table_and_nothing_else" {
 
   assert {
     condition = alltrue(flatten([
-      for document in [output.read_policy_json, output.write_policy_json, output.stream_policy_json] : [
+      for document in [output.read_policy_json, output.write_policy_json, output.append_policy_json, output.stream_policy_json] : [
         for statement in jsondecode(document).Statement : [
           for resource in flatten([statement.Resource]) :
           startswith(resource, "arn:aws:dynamodb:eu-west-1:333333333333:table/meridian-prod-inventory-movements") || resource == "arn:aws:kms:eu-west-1:333333333333:key/11111111-2222-3333-4444-555555555555"
@@ -226,7 +226,7 @@ run "the_key_is_usable_only_for_this_table" {
 
   assert {
     condition = alltrue(flatten([
-      for document in [output.read_policy_json, output.write_policy_json, output.stream_policy_json] : [
+      for document in [output.read_policy_json, output.write_policy_json, output.append_policy_json, output.stream_policy_json] : [
         for statement in jsondecode(document).Statement :
         statement.Condition.StringEquals["kms:EncryptionContext:aws:dynamodb:tableName"] == "meridian-prod-inventory-movements"
         if startswith(flatten([statement.Action])[0], "kms:")
@@ -345,5 +345,61 @@ run "puts_store_tags_on_the_table" {
   assert {
     condition     = aws_dynamodb_table.this.tags["Backup"] == "daily" && aws_dynamodb_table.this.tags["DataClassification"] == "internal"
     error_message = "A store tag must reach the table, alongside its classification."
+  }
+}
+
+run "the_append_policy_can_add_and_never_change_or_remove" {
+  command = plan
+
+  assert {
+    condition = alltrue(flatten([
+      for statement in jsondecode(output.append_policy_json).Statement : [
+        for action in flatten([statement.Action]) :
+        !contains(["dynamodb:UpdateItem", "dynamodb:DeleteItem", "dynamodb:BatchWriteItem", "dynamodb:Scan"], action) && !strcontains(action, "*")
+      ]
+    ]))
+    error_message = "The append policy must not allow updating or deleting an item. BatchWriteItem is excluded because it can delete."
+  }
+
+  assert {
+    condition = contains(flatten([
+      for statement in jsondecode(output.append_policy_json).Statement : flatten([statement.Action])
+    ]), "dynamodb:PutItem")
+    error_message = "The append policy must allow adding an item."
+  }
+}
+
+run "every_action_in_the_policies_is_a_real_one" {
+  command = plan
+
+  # DynamoDB has no TransactWriteItems or TransactGetItems action in IAM.
+  # A transaction is authorised by the item actions inside it. IAM accepts
+  # an unknown action silently, so only a list like this one catches it.
+  assert {
+    condition = length(setsubtract(
+      flatten([
+        for document in [output.read_policy_json, output.write_policy_json, output.append_policy_json, output.stream_policy_json] : [
+          for statement in jsondecode(document).Statement : flatten([statement.Action])
+        ]
+      ]),
+      [
+        "dynamodb:BatchGetItem",
+        "dynamodb:BatchWriteItem",
+        "dynamodb:ConditionCheckItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:DescribeStream",
+        "dynamodb:DescribeTable",
+        "dynamodb:GetItem",
+        "dynamodb:GetRecords",
+        "dynamodb:GetShardIterator",
+        "dynamodb:ListStreams",
+        "dynamodb:PutItem",
+        "dynamodb:Query",
+        "dynamodb:UpdateItem",
+        "kms:Decrypt",
+        "kms:GenerateDataKey",
+      ],
+    )) == 0
+    error_message = "A policy contains an action that is not on the list of real actions this module may grant."
   }
 }
