@@ -9,6 +9,7 @@ Which store holds what, how sensitive it is, how long it is kept and how it is r
 - [Differences between environments](#differences-between-environments)
 - [The data layer](#the-data-layer)
 - [Database credentials](#database-credentials)
+- [Cache access](#cache-access)
 - [How it is enforced](#how-it-is-enforced)
 
 ## Stores
@@ -158,6 +159,28 @@ A service is allowed to connect by an IAM statement on `arn:aws:rds-db:<region>:
 
 `make data-check` connects with the master secret the way an administrator would: it finds the address and the secret in Parameter Store, reads the secret, and runs SQL. Application roles are created with the first service that needs one.
 
+## Cache access
+
+The stock cache has no password. A client is a named ElastiCache user that proves who it is with its IAM role, and is limited inside the cache by an access rule.
+
+| Layer                         | Control                                                                              |
+| ----------------------------- | ------------------------------------------------------------------------------------ |
+| Network                       | The data security group, reachable from the application group only                   |
+| Who may connect               | IAM: `elasticache:Connect` on this cache and one user, attached to the client's role |
+| What it may do once connected | The user's access rule                                                               |
+
+The inventory service's rule is `on ~stock:* +@read +@write +@connection -@dangerous`:
+
+| Part                          | Meaning                                                                         |
+| ----------------------------- | ------------------------------------------------------------------------------- |
+| `~stock:*`                    | Only keys that start with `stock:`                                              |
+| `+@read +@write +@connection` | Reading, writing and connection commands                                        |
+| `-@dangerous`                 | Minus anything dangerous: `KEYS`, `FLUSHALL`, `CONFIG`, `SHUTDOWN` and the like |
+
+Not granting scripting matters as much as the key pattern: a script runs with the caller's permissions, and an `EVAL` that could call `KEYS` would walk around the pattern.
+
+`make data-check` reads the rule from ElastiCache, loads it into a throwaway Valkey server of the same major version, and checks that a client limited by it can read, write, expire and delete under `stock:`, and cannot touch another prefix, list keys, flush, read configuration, manage users, shut the server down or run a script.
+
 ## How it is enforced
 
 | Rule                                                                             | Where                                                                                                                                                                         |
@@ -168,5 +191,7 @@ A service is allowed to connect by an IAM statement on `arn:aws:rds-db:<region>:
 | Stores are in the data subnets with the data security group                      | Each module's inputs, and the smoke test                                                                                                                                      |
 | Databases are private, encrypted, backed up, protected, and given no password    | The `postgres-database` module, and policies `POL-DB-1` to `POL-DB-5` for a database created any other way                                                                    |
 | A database can be reached and behaves as PostgreSQL                              | `make data-check`, in the pipeline after each apply                                                                                                                           |
+| Caches are encrypted and have no shared password                                 | The `redis-cache` module, and policies `POL-CACHE-1` to `POL-CACHE-4` for a cache created any other way                                                                       |
+| A cache user is confined to its key prefix and to safe commands                  | Module validation on the access string, and `make data-check` against a real Valkey server                                                                                    |
 | Layers are applied and destroyed in order                                        | `scripts/layers.sh`, used by `make apply-all` and `make destroy-all`                                                                                                          |
 | A protected store cannot be destroyed by accident                                | Deletion protection follows `disposable`, which only dev sets. `make destroy-all` fails in staging and production, and `make teardown` is the deliberate two-step alternative |
