@@ -35,6 +35,7 @@ make bootstrap                   # once per emulator start: creates the state bu
 make plan                        # dev, foundation
 make apply ENV=staging
 make destroy ENV=staging
+make teardown ENV=staging        # lift deletion protections, then destroy every layer
 make validate                    # format check and validate everything
 make test                        # module plan tests. Nothing needs to be running
 make test-emulator               # module apply tests, against the emulator
