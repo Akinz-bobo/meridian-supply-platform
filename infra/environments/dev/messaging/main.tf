@@ -52,6 +52,11 @@ module "event_bus" {
   kms_key_arn        = local.facts.messaging_key_arn
   logs_kms_key_arn   = local.facts.logs_key_arn
   log_retention_days = var.log_retention_days
+
+  # The emulator can create a CloudWatch Logs resource policy and cannot
+  # delete one, which would make the layer impossible to tear down there.
+  # See emulator difference 26.
+  manage_log_resource_policy = var.aws_endpoint_url == null
 }
 
 resource "aws_ssm_parameter" "event_bus" {
