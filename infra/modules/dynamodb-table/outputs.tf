@@ -23,6 +23,11 @@ output "write_policy_json" {
   value       = data.aws_iam_policy_document.write.json
 }
 
+output "append_policy_json" {
+  description = "IAM policy that lets a role add and read items, and never update or delete one. For a table that is a record, such as a ledger. Attach it to a workload role."
+  value       = data.aws_iam_policy_document.append.json
+}
+
 output "stream_policy_json" {
   description = "IAM policy that lets a role consume the table's change stream. Attach it to the role of a stream consumer."
   value       = data.aws_iam_policy_document.stream.json

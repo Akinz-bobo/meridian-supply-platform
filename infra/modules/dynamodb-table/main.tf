@@ -178,6 +178,9 @@ data "aws_iam_policy_document" "read" {
   }
 }
 
+# A transaction needs no action of its own. DynamoDB authorises
+# TransactWriteItems by the item actions inside it: PutItem, UpdateItem,
+# DeleteItem and ConditionCheckItem.
 data "aws_iam_policy_document" "write" {
   source_policy_documents = [data.aws_iam_policy_document.read.json]
 
@@ -187,9 +190,34 @@ data "aws_iam_policy_document" "write" {
       "dynamodb:BatchWriteItem",
       "dynamodb:DeleteItem",
       "dynamodb:PutItem",
-      "dynamodb:TransactWriteItems",
       "dynamodb:UpdateItem",
     ]
+    resources = [local.table_arn]
+  }
+
+  statement {
+    sid       = "EncryptItems"
+    actions   = ["kms:GenerateDataKey"]
+    resources = [var.kms_key_arn]
+
+    condition {
+      test     = "StringEquals"
+      variable = "kms:EncryptionContext:aws:dynamodb:tableName"
+      values   = [var.name]
+    }
+  }
+}
+
+# For a table that is a record and must not be rewritten: items can be
+# added and read, and never changed or removed. Whether an item may replace
+# an existing one is up to the writer's condition expression, and a ledger
+# writes with attribute_not_exists.
+data "aws_iam_policy_document" "append" {
+  source_policy_documents = [data.aws_iam_policy_document.read.json]
+
+  statement {
+    sid       = "AddItems"
+    actions   = ["dynamodb:PutItem"]
     resources = [local.table_arn]
   }
 
