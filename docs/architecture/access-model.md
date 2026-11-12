@@ -80,12 +80,13 @@ flowchart LR
 | Using encryption keys                                   | Keys in this account and region. Which key is decided by the role's own policy |
 | Publishing metrics and traces                           | Not limitable to a resource                                                    |
 
-| The boundary denies, whatever a role's policy says                 | Why                                               |
-| ------------------------------------------------------------------ | ------------------------------------------------- |
-| Every IAM, Organizations and account action                        | A workload never changes who can do what          |
-| Disabling or deleting keys, changing key policies, creating grants | A workload uses keys and does not administer them |
-| Stopping the audit trail, deleting logs, changing log retention    | A compromised workload cannot cover its tracks    |
-| Any request to another region                                      | Data stays where it is meant to be                |
+| The boundary denies, whatever a role's policy says                      | Why                                                                            |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Every IAM, Organizations and account action                             | A workload never changes who can do what                                       |
+| Disabling or deleting keys, changing key policies, creating grants      | A workload uses keys and does not administer them                              |
+| Deleting object versions, changing bucket versioning or lifecycle rules | A workload can replace or delete the current object. It cannot destroy history |
+| Stopping the audit trail, deleting logs, changing log retention         | A compromised workload cannot cover its tracks                                 |
+| Any request to another region                                           | Data stays where it is meant to be                                             |
 
 ## The deploy role
 
@@ -97,12 +98,13 @@ Built by the [`access-roles` module](../../infra/modules/access-roles/README.md)
 | Manage IAM roles and policies      | Names starting `meridian-<env>-`                 |
 | Read and write Terraform state     | Its own environment's prefix in the state bucket |
 
-| It cannot                                                                                                 | How                                             |
-| --------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| Create or modify a role without the workload boundary                                                     | A deny conditioned on `iam:PermissionsBoundary` |
-| Remove a boundary from a role                                                                             | An explicit deny                                |
-| Change the boundary policy, its own role or policy, the operator or audit roles, or the identity provider | An explicit deny on those ARNs                  |
-| Read another environment's state                                                                          | The allow covers one prefix only                |
+| It cannot                                                                                                 | How                                                                                   |
+| --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Create or modify a role without the workload boundary                                                     | A deny conditioned on `iam:PermissionsBoundary`                                       |
+| Remove a boundary from a role                                                                             | An explicit deny                                                                      |
+| Change the boundary policy, its own role or policy, the operator or audit roles, or the identity provider | An explicit deny on those ARNs                                                        |
+| Read another environment's state                                                                          | The allow covers one prefix only                                                      |
+| Disable an encryption key or schedule it for deletion, in staging and production                          | An explicit deny. Dev is marked disposable and is exempt, so that it can be torn down |
 
 Together these close the usual escalation path, where a pipeline that may create roles creates one more powerful than itself. They also mean that changes to the access model itself are applied by an administrator and not by the pipeline.
 
