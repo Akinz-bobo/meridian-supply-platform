@@ -55,17 +55,17 @@ flowchart LR
     planning --> lake
 ```
 
-| Store                           | Technology     | Module              | Owner       | Why this technology                                                 |
-| ------------------------------- | -------------- | ------------------- | ----------- | ------------------------------------------------------------------- |
-| Product master, suppliers       | RDS PostgreSQL | `postgres-database` | Catalog     | Relational, with constraints between products, suppliers and units  |
-| Purchase orders, goods receipts | RDS PostgreSQL | `postgres-database` | Procurement | Transactions across order lines                                     |
-| Budgets, commitments, approvals | RDS PostgreSQL | `postgres-database` | Budget      | Strong consistency on money                                         |
-| Movement ledger                 | DynamoDB       | `dynamodb-table`    | Inventory   | Append-only, very high write volume, read by batch and by warehouse |
-| Stock levels                    | DynamoDB       | `dynamodb-table`    | Inventory   | Conditional writes enforce that stock never goes negative           |
-| Stock read cache                | ElastiCache    | `redis-cache`       | Inventory   | Read far more often than it changes. Can be rebuilt from the tables |
-| Supplier uploads                | S3             | `data-bucket`       | Curation    | Files, kept as received                                             |
-| File exchange                   | S3             | `data-bucket`       | ERP gateway | Files to and from the finance system                                |
-| Data lake                       | S3             | `data-bucket`       | Analytics   | Every event, kept cheaply, queried with Athena                      |
+| Store                           | Technology     | Module              | Owner       | Why this technology                                                                                                          |
+| ------------------------------- | -------------- | ------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Product master, suppliers       | RDS PostgreSQL | `postgres-database` | Catalog     | Relational, with constraints between products, suppliers and units                                                           |
+| Purchase orders, goods receipts | RDS PostgreSQL | `postgres-database` | Procurement | Transactions across order lines                                                                                              |
+| Budgets, commitments, approvals | RDS PostgreSQL | `postgres-database` | Budget      | Strong consistency on money                                                                                                  |
+| Movement ledger                 | DynamoDB       | `dynamodb-table`    | Inventory   | Append-only, very high write volume, read by batch and by warehouse. See the [inventory data model](inventory-data-model.md) |
+| Stock levels                    | DynamoDB       | `dynamodb-table`    | Inventory   | Conditional writes enforce that stock never goes negative                                                                    |
+| Stock read cache                | ElastiCache    | `redis-cache`       | Inventory   | Read far more often than it changes. Can be rebuilt from the tables                                                          |
+| Supplier uploads                | S3             | `data-bucket`       | Curation    | Files, kept as received                                                                                                      |
+| File exchange                   | S3             | `data-bucket`       | ERP gateway | Files to and from the finance system                                                                                         |
+| Data lake                       | S3             | `data-bucket`       | Analytics   | Every event, kept cheaply, queried with Athena                                                                               |
 
 The modules are added one at a time in this milestone. A store that belongs to a service is created in the `data` layer, with the service's name as its component, when that service is first needed. Keeping every store in this layer means a change to a service's compute can never produce a plan that touches its data. The supplier uploads bucket is the first.
 
