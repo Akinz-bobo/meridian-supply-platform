@@ -106,6 +106,23 @@ check "the flow log group $log_group has a retention period" jq -e --arg g "$log
   '[.logGroups[]? | select(.logGroupName == $g) | .retentionInDays] | length == 1 and all(. >= 30)' \
   <<<"$(as_account "$account" aws logs describe-log-groups --log-group-name-prefix "$log_group" --output json 2>/dev/null || echo '{}')"
 
+groups="$(as_account "$account" aws ec2 describe-security-groups --filters "Name=vpc-id,Values=$vpc_id" \
+  --output json 2>/dev/null || echo '{}')"
+prefix="meridian-$environment-network"
+check 'the load balancer, application and data security groups exist' jq -e --arg p "$prefix" \
+  '[.SecurityGroups[]?.GroupName] | contains([$p + "-lb", $p + "-app", $p + "-data"])' <<<"$groups"
+check 'only the load balancer group accepts traffic from the internet' jq -e --arg p "$prefix" \
+  '[.SecurityGroups[]? | select(any(.IpPermissions[]?.IpRanges[]?; .CidrIp == "0.0.0.0/0")) | .GroupName]
+    == [$p + "-lb"]' <<<"$groups"
+check 'the data group is reached by group reference only' jq -e --arg p "$prefix" \
+  '.SecurityGroups[]? | select(.GroupName == $p + "-data") | .IpPermissions
+    | length > 0 and all((.IpRanges | length) == 0 and (.UserIdGroupPairs | length) > 0)' <<<"$groups"
+check 'the data group has no outbound rules' jq -e --arg p "$prefix" \
+  '.SecurityGroups[]? | select(.GroupName == $p + "-data") | .IpPermissionsEgress | length == 0' <<<"$groups"
+check 'the default security group has no rules' jq -e \
+  '.SecurityGroups[]? | select(.GroupName == "default")
+    | (.IpPermissions | length) == 0 and (.IpPermissionsEgress | length) == 0' <<<"$groups"
+
 while IFS= read -r layer; do
   check "state for the $layer layer is in the shared bucket" \
     as_account "$state_account" aws s3api head-object --bucket "$state_bucket" --key "$1/$layer/terraform.tfstate"
