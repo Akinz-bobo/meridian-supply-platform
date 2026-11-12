@@ -20,3 +20,8 @@ state_key_prefix   = "staging"
 
 database_instance_class        = "db.t4g.small"
 database_backup_retention_days = 7
+
+# This environment holds data that matters. Protections against deletion stay
+# on, and the pipeline cannot delete encryption keys. False is the default.
+# It is stated so that the decision is visible in this file.
+disposable = false
