@@ -433,6 +433,45 @@ check 'it records shell sessions, encrypted with the logs key' jq -e --arg k "$l
   '.configuration.executeCommandConfiguration | .logging == "OVERRIDE" and .kmsKeyId == $k
     and .logConfiguration.cloudWatchEncryptionEnabled' <<<"$cluster"
 
+# Services layer: the sample service on ECS.
+service="$(as_account "$account" aws ecs describe-services --cluster "meridian-$environment-compute" \
+  --services "meridian-$environment-sample" --output json 2>/dev/null | jq -c '.services[0] // {}' || echo '{}')"
+check 'the sample service is active and running the tasks it wants' jq -e \
+  '.status == "ACTIVE" and .desiredCount >= 1 and .runningCount == .desiredCount' <<<"$service"
+check 'its tasks have no public address' jq -e \
+  '.networkConfiguration.awsvpcConfiguration.assignPublicIp == "DISABLED"' <<<"$service"
+check 'a failed deployment is rolled back' jq -e \
+  '.deploymentConfiguration.deploymentCircuitBreaker | .enable and .rollback' <<<"$service"
+check 'a shell cannot be opened in its containers' jq -e '.enableExecuteCommand == false' <<<"$service"
+definition="$(as_account "$account" aws ecs describe-task-definition --task-definition "meridian-$environment-sample" \
+  --output json 2>/dev/null | jq -c '.taskDefinition // {}' || echo '{}')"
+check 'its container is not root, cannot write to its filesystem and has no capabilities' jq -e \
+  '.containerDefinitions[0] | .user == "10001:10001" and .readonlyRootFilesystem and (.privileged | not)
+    and .linuxParameters.capabilities.drop == ["ALL"]' <<<"$definition"
+deployed_image="$(as_account "$account" aws ssm get-parameter --name "/meridian/$environment/sample/image" \
+  --output json 2>/dev/null | jq -r '.Parameter.Value // empty' || true)"
+check 'it runs the image the release pointer names, by an exact tag' jq -e --arg i "$deployed_image" \
+  '.containerDefinitions[0].image == $i and ($i | test(":[0-9a-f]{12}$"))' <<<"$definition"
+check 'the role that starts it and the role it runs as are different' jq -e --arg e "$environment" \
+  '(.executionRoleArn | endswith("meridian-" + $e + "-sample-execution-role"))
+    and (.taskRoleArn | endswith("meridian-" + $e + "-sample-task-role"))' <<<"$definition"
+for role in execution task; do
+  check "its $role role carries the permission boundary" jq -e --arg b "$boundary_arn" \
+    '.Role.PermissionsBoundary.PermissionsBoundaryArn == $b' \
+    <<<"$(as_account "$account" aws iam get-role --role-name "meridian-$environment-sample-$role-role" --output json 2>/dev/null || echo '{}')"
+done
+check 'its task role has no permissions at all' jq -e '.PolicyNames == []' \
+  <<<"$(as_account "$account" aws iam list-role-policies --role-name "meridian-$environment-sample-task-role" --output json 2>/dev/null || echo '{}')"
+service_group="$(jq -c --arg n "meridian-$environment-sample" '.SecurityGroups[]? | select(.GroupName == $n)' <<<"$groups")"
+check 'it has a security group of its own, reached only from the load balancer' jq -e --arg g "$lb_group" \
+  '.IpPermissions | length == 1 and .[0].FromPort == 8080 and (.[0].IpRanges | length) == 0
+    and [.[0].UserIdGroupPairs[].GroupId] == [$g]' <<<"$service_group"
+check 'its target is healthy' jq -e \
+  '.TargetHealthDescriptions | length >= 1 and all(.TargetHealth.State == "healthy")' \
+  <<<"$(as_account "$account" aws elbv2 describe-target-health --output json --target-group-arn "$(as_account "$account" \
+    aws elbv2 describe-target-groups --names "meridian-$environment-sample" --output json 2>/dev/null |
+    jq -r '.TargetGroups[0].TargetGroupArn // empty')" 2>/dev/null || echo '{}')"
+
 while IFS= read -r layer; do
   check "state for the $layer layer is in the shared bucket" \
     as_account "$state_account" aws s3api head-object --bucket "$state_bucket" --key "$1/$layer/terraform.tfstate"
