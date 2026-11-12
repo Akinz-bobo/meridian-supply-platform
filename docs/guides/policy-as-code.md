@@ -90,6 +90,13 @@ Data-holding types: RDS instances and clusters, DynamoDB tables, S3 buckets, KMS
 
 A replacement counts as a delete. Changing an attribute that forces Terraform to recreate a database destroys the data just as surely as removing it.
 
+### Logging
+
+| Rule      | Requires                                 | Reason                                                       |
+| --------- | ---------------------------------------- | ------------------------------------------------------------ |
+| POL-LOG-1 | Every log group has a retention period   | Without one, logs are kept and paid for indefinitely         |
+| POL-LOG-2 | The retention period is at least 30 days | Shorter, and the logs are gone before an incident is noticed |
+
 ## Running the checks
 
 ```bash
