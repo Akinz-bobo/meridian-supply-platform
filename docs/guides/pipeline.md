@@ -120,16 +120,16 @@ Two structural differences from a real pipeline follow from the emulator being r
 
 Moving to real accounts changes how the pipeline authenticates and how production is gated. The steps, the `make` targets and the Terraform stay the same.
 
-| Concern            | Here                                     | Against AWS                                                                                                                   |
-| ------------------ | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Credentials        | None. The emulator accepts a placeholder | GitHub's OIDC provider, exchanged for a short-lived role in each account. No long-lived keys stored anywhere                  |
-| Role per job       | Not applicable                           | A read-only role for `plan`, a deploy role for `apply`, each trusted only for this repository and, for apply, only for `main` |
-| Base state         | Recreated by applying `main`             | Already there. The plan is against real state                                                                                 |
-| Reviewed plan      | Planned again on merge                   | The plan file is saved as an artifact on the pull request and applied unchanged                                               |
-| Promotion          | All three environments in one run        | `dev` on merge. `staging` and `production` on a release tag                                                                   |
-| Production gate    | None                                     | A GitHub environment with required reviewers, so a person approves the production apply after seeing the staging result       |
-| Teardown rehearsal | Every pull request                       | A scheduled job in a sandbox account, not in the long-lived environments                                                      |
-| Drift              | Cannot occur                             | A scheduled plan per environment that alerts when reality differs from code                                                   |
+| Concern            | Here                                     | Against AWS                                                                                                                                                                                                               |
+| ------------------ | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Credentials        | None. The emulator accepts a placeholder | GitHub's OIDC provider, exchanged for a short-lived role in each account. No long-lived keys stored anywhere                                                                                                              |
+| Role per job       | Not applicable                           | One deploy role per environment, `meridian-<env>-access-deploy`, trusted only for this repository and for the GitHub environment of the same name. A separate read-only role for `plan` on pull requests is not built yet |
+| Base state         | Recreated by applying `main`             | Already there. The plan is against real state                                                                                                                                                                             |
+| Reviewed plan      | Planned again on merge                   | The plan file is saved as an artifact on the pull request and applied unchanged                                                                                                                                           |
+| Promotion          | All three environments in one run        | `dev` on merge. `staging` and `production` on a release tag                                                                                                                                                               |
+| Production gate    | None                                     | A GitHub environment with required reviewers, so a person approves the production apply after seeing the staging result                                                                                                   |
+| Teardown rehearsal | Every pull request                       | A scheduled job in a sandbox account, not in the long-lived environments                                                                                                                                                  |
+| Drift              | Cannot occur                             | A scheduled plan per environment that alerts when reality differs from code                                                                                                                                               |
 
 The authentication step would look like this, and nothing after it changes:
 
@@ -141,12 +141,12 @@ permissions:
 steps:
   - uses: aws-actions/configure-aws-credentials@v4
     with:
-      role-to-assume: arn:aws:iam::<account>:role/meridian-<env>-deploy
+      role-to-assume: arn:aws:iam::<account>:role/meridian-<env>-access-deploy
       aws-region: eu-west-1
   - run: make apply-all ENV=production TARGET=aws
 ```
 
-The deploy roles and their trust policies are part of the IAM foundations in milestone 2.
+The deploy role and its trust policy are built by the [`access-roles` module](../../infra/modules/access-roles/README.md) and described in the [access model](../architecture/access-model.md#the-deploy-role). The job must declare `environment: <name>`, because the trust policy matches the token subject `repo:<owner>/<repository>:environment:<name>` exactly.
 
 ## When the pipeline fails
 
