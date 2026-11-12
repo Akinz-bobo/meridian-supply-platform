@@ -4,6 +4,10 @@ Notable changes, newest first. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-12
+
+Milestone 2: network and security baseline. The network, encryption keys, identity and secrets that every workload will depend on, reviewed as a whole against a threat model before anything is built on top.
+
 ### Added
 
 - Network: a tested `vpc` module with public, private and isolated data tiers across three zones, added to every environment and published to Parameter Store, with network checks in the smoke test, policy rule POL-NAME-5 and a network architecture document.
@@ -55,6 +59,7 @@ Milestone 0: planning and architecture. No infrastructure exists yet. This relea
 - Roadmap with milestone order, dependencies and exit criteria.
 - CI for documentation: formatting, relative links and the decision record index.
 
-[Unreleased]: https://github.com/Akinz-bobo/meridian-supply-platform/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Akinz-bobo/meridian-supply-platform/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Akinz-bobo/meridian-supply-platform/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Akinz-bobo/meridian-supply-platform/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Akinz-bobo/meridian-supply-platform/releases/tag/v0.1.0
