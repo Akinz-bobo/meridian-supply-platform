@@ -12,6 +12,7 @@ Notable changes, newest first. The format follows [Keep a Changelog](https://kee
 - Pipeline: each environment is rehearsed in a parallel job with its own emulator, the three plan reports are joined into one comment, and the Terraform setup is a shared composite action.
 - PostgreSQL: a tested `postgres-database` module with RDS-managed credentials, enforced TLS, backups and logs, the catalog database in every environment, a database check in `make data-check`, and policy rules POL-DB-1 to POL-DB-5.
 - Cache: a tested `redis-cache` module running Valkey with IAM-authenticated users and no shared password, the stock cache in every environment, a check of the access rule against a real Valkey server, and policy rules POL-CACHE-1 to POL-CACHE-4.
+- Backups: a tested `backup-plan` module with a locked vault and selection by tag, a vault with its own key in every environment, daily backups of the catalog database and the movement ledger, a backup check in `make data-check`, and a restore runbook.
 
 ### Fixed
 
