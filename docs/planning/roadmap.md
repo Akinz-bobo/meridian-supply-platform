@@ -60,7 +60,7 @@ M3, M4 and M5 are independent of each other and could be worked in parallel by a
 
 ## Milestones
 
-Each milestone has a goal, deliverables and exit criteria. Milestones 0 to 4 are broken into issues. Later ones are a single epic that is broken down when the milestone before it closes, as the [delivery process](delivery-process.md#milestones) describes.
+Each milestone has a goal, deliverables and exit criteria. Milestones 0 to 5 are broken into issues. Later ones are a single epic that is broken down when the milestone before it closes, as the [delivery process](delivery-process.md#milestones) describes.
 
 ### M0: Planning and architecture
 
@@ -136,6 +136,8 @@ Each milestone has a goal, deliverables and exit criteria. Milestones 0 to 4 are
 **Goal.** Somewhere to run each kind of workload from [decision record 0005](../adr/0005-compute-model-per-workload.md): a registry, an ECS cluster, an EKS cluster with its add-ons and workload identity, load balancing, and the EC2 gateway host.
 
 **Exit criteria.** A sample container is deployed to ECS and to EKS through the pipeline, reachable through the load balancer, with its own IAM role.
+
+**Issues.** The compute layer and the container registry (116), load balancing (117), ECS (118), EKS (119), the ERP gateway host (120), a compute check (121), and a review and release (122). Review findings 60 and 64 from milestone 2 are closed here.
 
 ### M6: Catalog and curation
 
