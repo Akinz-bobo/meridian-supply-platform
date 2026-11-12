@@ -15,8 +15,8 @@ The plan for building Meridian, milestone by milestone: what each delivers, what
 | [M1: Infrastructure foundation](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/2)               | Emulator, Terraform layout, remote state, static analysis, policy checks, pipeline | v0.2.0  | Complete |
 | [M2: Network and security baseline](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/3)           | VPC, endpoints, security groups, KMS, IAM, secrets                                 | v0.3.0  | Complete |
 | [M3: Data layer](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/4)                              | RDS, DynamoDB, S3, ElastiCache modules                                             | v0.4.0  | Complete |
-| [M4: Messaging and events](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/5)                    | SQS, SNS, Kinesis, EventBridge modules                                             | v0.5.0  | Next     |
-| [M5: Compute platforms](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/6)                       | ECR, ECS, EKS, load balancing, the EC2 gateway                                     | v0.6.0  | Planned  |
+| [M4: Messaging and events](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/5)                    | SQS, SNS, Kinesis, EventBridge modules                                             | v0.5.0  | Complete |
+| [M5: Compute platforms](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/6)                       | ECR, ECS, EKS, load balancing, the EC2 gateway                                     | v0.6.0  | Next     |
 | [M6: Catalog and curation](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/7)                    | Supplier file ingestion, curation workflow, product master                         | v0.7.0  | Planned  |
 | [M7: Inventory and warehouse events](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/8)          | Movement pipeline, ledger, stock levels, expiry                                    | v0.8.0  | Planned  |
 | [M8: Procurement and budgeting](https://github.com/Akinz-bobo/meridian-supply-platform/milestone/9)               | Purchase orders, receiving, budgets, approvals, ERP exchange                       | v0.9.0  | Planned  |
@@ -118,9 +118,18 @@ Each milestone has a goal, deliverables and exit criteria. Milestones 0 to 4 are
 
 **Goal.** The event backbone from [decision record 0006](../adr/0006-event-backbone-and-messaging-conventions.md): the bus, a module that gives a consumer its queue and dead-letter queue in one call, the movement stream and notification topics.
 
-**Exit criteria.** An event put on the bus arrives in a consumer's queue, a poisoned message lands in the dead-letter queue, and that raises an alarm.
+**Delivered.** A `messaging` state layer in every environment and the [messaging](../architecture/messaging.md) document. Four modules: `event-bus`, `event-consumer-queue`, `notification-topic` and `event-stream`. The event bus with an archive and an event log, three consumer queues, an alarms topic and a notifications topic, and the movement stream. The [event contract](../../contracts/events/README.md): the envelope as JSON Schema with a validator that has no dependencies. A [dead-letter queue runbook](../runbooks/dead-letter-queue.md). The threat model extended to messaging, and a [messaging review](../architecture/security/messaging-review.md).
 
-**Issues.** The messaging layer, the event bus and the event contract (97), the consumer queue module (98), notification topics (99), the movement stream (100), an event flow check and a dead-letter queue runbook (101), and a review and release (102).
+**Exit criteria, as verified.** `make event-check`, on every pull request and in every environment: an event put on the bus arrives in each queue interested in it and in no other, and a message received five times without being deleted lands in the dead-letter queue and can be redriven. "That raises an alarm" is verified at both ends and **not** in the middle: the metric the alarm watches records the message, and an alarm that changes state notifies the alarms topic, and the emulator never evaluates the alarm itself.
+
+**What changed from the plan.**
+
+- **An event contract with a validator**, which the plan did not have. Every event the check publishes is validated first.
+- **A producer can publish only under its own name.** Each producer's policy is limited to its own `source`.
+- **The review found two ways an event could be lost with nobody told**, and both are fixed: an event the bus cannot deliver is parked and not discarded, and a consumer that falls behind raises an alarm.
+- **Alarms reach nobody yet.** Every alarm notifies a topic, and the topic has no subscribers. The plumbing to add them per environment exists. This is the layer's main open item, issue 110.
+
+**Issues.** The messaging layer, the event bus and the event contract (97), the consumer queue module (98), notification topics (99), the movement stream (100), the event flow check and runbook (101), a review (102) and its two fixes (108, 109). Carried forward: 110 to 113.
 
 ### M5: Compute platforms
 
