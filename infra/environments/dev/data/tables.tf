@@ -14,8 +14,13 @@ module "inventory_context" {
 module "movements" {
   source = "../../../modules/dynamodb-table"
 
-  name       = "${module.inventory_context.prefix}-movements"
+  name = "${module.inventory_context.prefix}-movements"
+
+  # The ledger is the audit record of stock and cannot be rebuilt from
+  # anything else, so it is also backed up daily to the vault.
   tags       = module.inventory_context.tags
+  store_tags = local.backup_tag
+
   account_id = var.aws_account_id
 
   data_classification = "internal"
