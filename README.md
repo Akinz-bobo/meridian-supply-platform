@@ -90,6 +90,7 @@ See [local development](docs/guides/local-development.md).
 | [Messaging](docs/architecture/messaging.md)                                 | The event bus, the contract every event follows, and who may publish what                               |
 | [Dead-letter queue runbook](docs/runbooks/dead-letter-queue.md)             | What to do when a message fails five times: inspect, fix, redrive                                       |
 | [Messaging review](docs/architecture/security/messaging-review.md)          | The review of milestone 4: six findings, found by asking where an event can be lost                     |
+| [Compute](docs/architecture/compute.md)                                     | Where workloads run, how images are built and tagged, and what every container must be                  |
 
 Changes are summarised in the [changelog](CHANGELOG.md).
 

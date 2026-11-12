@@ -4,6 +4,10 @@ Notable changes, newest first. The format follows [Keep a Changelog](https://kee
 
 ## [Unreleased]
 
+### Added
+
+- Compute: a `compute` state layer, a tested `container-repository` module, a hardened sample service with tests, `make image` to build and push by content hash, and kubectl and Helm in the pinned tools.
+
 ## [0.5.0] - 2026-11-12
 
 Milestone 4: messaging and events. The bus, consumer queues with dead-letter queues, topics and the movement stream, an event contract with a validator, and a check that follows real events through the environment on every pull request.
