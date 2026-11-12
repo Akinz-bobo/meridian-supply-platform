@@ -123,6 +123,25 @@ check 'the default security group has no rules' jq -e \
   '.SecurityGroups[]? | select(.GroupName == "default")
     | (.IpPermissions | length) == 0 and (.IpPermissionsEgress | length) == 0' <<<"$groups"
 
+# Encryption keys.
+for purpose in data logs messaging secrets; do
+  alias="alias/meridian-$environment-$purpose"
+  key_id="$(as_account "$account" aws kms describe-key --key-id "$alias" --output json 2>/dev/null |
+    jq -r '.KeyMetadata | select(.Enabled) | .KeyId // empty' || true)"
+  check "the $purpose key exists and is enabled as $alias" test -n "$key_id"
+  check "the $purpose key rotates" jq -e '.KeyRotationEnabled' \
+    <<<"$(as_account "$account" aws kms get-key-rotation-status --key-id "$key_id" --output json 2>/dev/null || echo '{}')"
+done
+logs_key_arn="$(as_account "$account" aws kms describe-key --key-id "alias/meridian-$environment-logs" --output json \
+  2>/dev/null | jq -r '.KeyMetadata.Arn // empty' || true)"
+check 'the flow log group is encrypted with the logs key' jq -e --arg g "$log_group" --arg k "$logs_key_arn" \
+  '[.logGroups[]? | select(.logGroupName == $g) | .kmsKeyId] == [$k]' \
+  <<<"$(as_account "$account" aws logs describe-log-groups --log-group-name-prefix "$log_group" --output json 2>/dev/null || echo '{}')"
+check 'the logs key policy limits CloudWatch Logs to this account' jq -e --arg a "$account" \
+  '.Policy | fromjson | .Statement[] | select(.Principal.Service != null)
+    | .Condition.StringEquals["aws:SourceAccount"] == $a' \
+  <<<"$(as_account "$account" aws kms get-key-policy --key-id "$logs_key_arn" --policy-name default --output json 2>/dev/null || echo '{}')"
+
 while IFS= read -r layer; do
   check "state for the $layer layer is in the shared bucket" \
     as_account "$state_account" aws s3api head-object --bucket "$state_bucket" --key "$1/$layer/terraform.tfstate"
