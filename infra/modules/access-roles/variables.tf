@@ -145,3 +145,9 @@ variable "state_account_id" {
     error_message = "An AWS account id is 12 digits."
   }
 }
+
+variable "allow_key_deletion" {
+  description = "Let the pipeline disable encryption keys and schedule them for deletion. Only for an environment whose data is disposable and which the pipeline tears down."
+  type        = bool
+  default     = false
+}
