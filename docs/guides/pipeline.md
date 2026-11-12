@@ -36,7 +36,7 @@ flowchart TB
     comment --> gate{Plan and policies pass?}
     gate -- no --> fail([Fail])
     gate -- yes --> apply[Apply the pull request]
-    apply --> smoke[Smoke test each environment]
+    apply --> smoke[Smoke test and state audit<br/>of each environment]
     smoke --> destroy[Destroy everything,<br/>in reverse order]
     destroy --> pass([Pass])
 ```
@@ -86,6 +86,8 @@ make up && make bootstrap
 
 make apply-all ENV=dev        # every layer, in order
 make smoke ENV=dev            # ask the API whether it looks right
+make state-audit ENV=dev      # check that no secret value is in the remote state
+make test-emulator            # module apply tests
 make report                   # plan all environments, check policies, write plan-report.md
 make destroy-all ENV=dev      # every layer, in reverse
 ```
@@ -150,14 +152,16 @@ The deploy role and its trust policy are built by the [`access-roles` module](..
 
 ## When the pipeline fails
 
-| Step that failed      | Usual cause                                                                             | What to do                                                                                                                                                  |
-| --------------------- | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Start the emulator    | The image could not be pulled, or the runner is short of resources                      | Re-run. If it persists, check the emulator logs printed at the end of the run                                                                               |
-| Apply the base branch | `main` itself does not apply                                                            | This is a broken `main` and takes priority over the pull request. Open a bug                                                                                |
-| Plan the pull request | Invalid Terraform that validate did not catch, often a value only resolved at plan time | Read the plan output in the comment. Reproduce with `make plan`                                                                                             |
-| Policy                | A rule is violated                                                                      | The comment names the rule and the resource. See [policy as code](policy-as-code.md)                                                                        |
-| Rehearse the apply    | The plan was valid but the API rejected something, or an ordering problem               | Reproduce with `make apply-all`. If the emulator behaves differently from AWS, record it in [emulator differences](../architecture/emulator-differences.md) |
-| Smoke test            | The environment applied but does not look right                                         | Run `make smoke ENV=<env>` locally. Each check prints what it expected                                                                                      |
-| Rehearse the teardown | Something cannot be destroyed, usually a dependency Terraform does not know about       | Add the missing dependency. Infrastructure that cannot be removed cannot be rebuilt                                                                         |
+| Step that failed      | Usual cause                                                                                | What to do                                                                                                                                                                                                                                |
+| --------------------- | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Start the emulator    | The image could not be pulled, or the runner is short of resources                         | Re-run. If it persists, check the emulator logs printed at the end of the run                                                                                                                                                             |
+| Apply the base branch | `main` itself does not apply                                                               | This is a broken `main` and takes priority over the pull request. Open a bug                                                                                                                                                              |
+| Plan the pull request | Invalid Terraform that validate did not catch, often a value only resolved at plan time    | Read the plan output in the comment. Reproduce with `make plan`                                                                                                                                                                           |
+| Policy                | A rule is violated                                                                         | The comment names the rule and the resource. See [policy as code](policy-as-code.md)                                                                                                                                                      |
+| Rehearse the apply    | The plan was valid but the API rejected something, or an ordering problem                  | Reproduce with `make apply-all`. If the emulator behaves differently from AWS, record it in [emulator differences](../architecture/emulator-differences.md)                                                                               |
+| Smoke test            | The environment applied but does not look right                                            | Run `make smoke ENV=<env>` locally. Each check prints what it expected                                                                                                                                                                    |
+| State audit           | A resource was given a secret value through an ordinary argument, so the value is in state | Use a write-only argument or set the value outside Terraform. See [secrets and configuration](../architecture/secrets-and-configuration.md#secret-values-and-terraform-state). The value in state must be treated as exposed and replaced |
+| Module apply tests    | A module cannot be created, changed or destroyed in the emulator                           | Run `make test-emulator` locally                                                                                                                                                                                                          |
+| Rehearse the teardown | Something cannot be destroyed, usually a dependency Terraform does not know about          | Add the missing dependency. Infrastructure that cannot be removed cannot be rebuilt                                                                                                                                                       |
 
 State problems (a stuck lock, a state that disagrees with reality) are covered in the [state runbook](../runbooks/terraform-state.md).
