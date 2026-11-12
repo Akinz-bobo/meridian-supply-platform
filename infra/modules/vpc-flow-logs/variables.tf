@@ -71,3 +71,13 @@ variable "kms_key_arn" {
   type        = string
   default     = null
 }
+
+variable "permissions_boundary_arn" {
+  description = "ARN of the environment's permission boundary, set on the delivery role."
+  type        = string
+
+  validation {
+    condition     = can(regex("^arn:aws[a-z-]*:iam::[0-9]{12}:policy/.+", var.permissions_boundary_arn))
+    error_message = "Give the ARN of an IAM policy, for example arn:aws:iam::333333333333:policy/meridian-prod-workload-boundary."
+  }
+}

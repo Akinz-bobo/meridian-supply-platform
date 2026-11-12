@@ -3,6 +3,14 @@
 # The delivery role can write to this one log group and nothing else, and
 # only the flow logs service in this account can assume it.
 
+data "aws_region" "current" {}
+
+locals {
+  # Built from its parts and not read from the log group, so the delivery
+  # policy is known at plan time and can be policy checked.
+  log_group_arn = "arn:aws:logs:${data.aws_region.current.region}:${var.account_id}:log-group:${var.log_group_name}"
+}
+
 data "aws_iam_policy_document" "assume" {
   statement {
     sid     = "FlowLogsServiceOnly"
@@ -32,8 +40,8 @@ data "aws_iam_policy_document" "deliver" {
       "logs:DescribeLogStreams",
     ]
     resources = [
-      aws_cloudwatch_log_group.this.arn,
-      "${aws_cloudwatch_log_group.this.arn}:log-stream:*",
+      local.log_group_arn,
+      "${local.log_group_arn}:log-stream:*",
     ]
   }
 }
@@ -47,9 +55,10 @@ resource "aws_cloudwatch_log_group" "this" {
 }
 
 resource "aws_iam_role" "this" {
-  name               = "${var.name}-flow-logs-role"
-  description        = "Lets VPC flow logs write to ${var.log_group_name}."
-  assume_role_policy = data.aws_iam_policy_document.assume.json
+  name                 = "${var.name}-flow-logs-role"
+  description          = "Lets VPC flow logs write to ${var.log_group_name}."
+  assume_role_policy   = data.aws_iam_policy_document.assume.json
+  permissions_boundary = var.permissions_boundary_arn
 
   tags = var.tags
 }

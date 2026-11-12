@@ -24,4 +24,6 @@ module "vpc_flow_logs" {
   vpc_id         = module.vpc.vpc_id
   account_id     = "333333333333"
   log_group_name = "/meridian/prod/network/flow-logs"
+
+  permissions_boundary_arn = "arn:aws:iam::333333333333:policy/meridian-prod-workload-boundary"
 }
