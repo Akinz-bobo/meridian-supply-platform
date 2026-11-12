@@ -2,11 +2,11 @@
 
 The smallest thing worth deploying. It exists to prove the compute platforms: it is deployed to ECS and to EKS through the pipeline, sits behind the load balancer, and is replaced by real services from milestone 6 on, which are deployed the same way.
 
-| Path        | Answers                                                                                   |
-| ----------- | ----------------------------------------------------------------------------------------- |
-| `/healthz`  | `{"status": "ok"}`. For load balancer and platform health checks                          |
-| `/`         | The service, environment, platform and version it was told it is                          |
-| `/identity` | How it would obtain AWS credentials, and for which role. Never a key, a secret or a token |
+| Path        | Answers                                                                                                                                                           |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/healthz`  | `{"status": "ok"}`. For load balancer and platform health checks                                                                                                  |
+| `/`         | The service, environment, platform and version it was told it is                                                                                                  |
+| `/identity` | How it would obtain AWS credentials, and for which role: `ecs-task-role`, `eks-pod-identity`, `environment-variables` or `none`. Never a key, a secret or a token |
 
 Behind the load balancer every path is also served under `/sample/`.
 
