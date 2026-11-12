@@ -25,9 +25,11 @@ What a caller decides:
 
 What a caller needs to know:
 
-- **Use the policy outputs.** `read_policy_json`, `write_policy_json` and `stream_policy_json` are attached to workload roles. All three tie use of the shared data key to this table through the encryption context.
+- **Use the policy outputs.** `read_policy_json`, `write_policy_json`, `append_policy_json` and `stream_policy_json` are attached to workload roles. All four tie use of the shared data key to this table through the encryption context.
 - **The read policy has no `Scan`.** A scan reads the whole table and is billed for all of it. An access pattern that needs one needs an index. A caller who truly wants a scan adds the statement explicitly, where a reviewer will see it.
+- **`append_policy_json` is for a table that is a record.** It can add and read items, and cannot update or delete one. The movement ledger uses it. Whether an add may replace an existing item is decided by the writer's condition expression, and a ledger writes with `attribute_not_exists`.
 - **The write policy is for items.** It cannot update, delete or back up the table.
+- **Transactions need no action of their own.** DynamoDB authorises `TransactWriteItems` by the item actions inside it, so none of the policies names it.
 - **Index keys use `key_schema` blocks.** The provider deprecated `hash_key` and `range_key` on indexes.
 
 The key design of the inventory tables, and a check that exercises it, are in the [inventory data model](../../../docs/architecture/inventory-data-model.md).
@@ -109,6 +111,7 @@ output "write_policy_json" {
 
 | Name | Description |
 | ---- | ----------- |
+| append\_policy\_json | IAM policy that lets a role add and read items, and never update or delete one. For a table that is a record, such as a ledger. Attach it to a workload role. |
 | read\_policy\_json | IAM policy that lets a role read items, by key or through an index. Scans are not included. Attach it to a workload role. |
 | stream\_arn | ARN of the change stream. Null when the table has no stream. |
 | stream\_policy\_json | IAM policy that lets a role consume the table's change stream. Attach it to the role of a stream consumer. |
@@ -123,6 +126,7 @@ output "write_policy_json" {
 | [aws_appautoscaling_policy.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/appautoscaling_policy) | resource |
 | [aws_appautoscaling_target.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/appautoscaling_target) | resource |
 | [aws_dynamodb_table.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/dynamodb_table) | resource |
+| [aws_iam_policy_document.append](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.read](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.stream](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.write](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
