@@ -2,13 +2,15 @@
 
 Where workloads run, how their images get there, and what every container is expected to be. The choice of platform per workload is [decision record 0005](../adr/0005-compute-model-per-workload.md).
 
-This document grows through milestone 5. It covers the layer, images, the sample service and the load balancer. ECS, EKS and the gateway host are added as they are built.
+This document grows through milestone 5. It covers the layers, images, the sample service, the load balancer and ECS. EKS and the gateway host are added as they are built.
 
 - [The compute layer](#the-compute-layer)
 - [Images](#images)
 - [What every container must be](#what-every-container-must-be)
 - [The sample service](#the-sample-service)
 - [The way in](#the-way-in)
+- [ECS](#ecs)
+- [Deploying](#deploying)
 - [How it is enforced](#how-it-is-enforced)
 - [What the emulator does not prove](#what-the-emulator-does-not-prove)
 
@@ -91,6 +93,67 @@ The domain is a value of the environment: `dev.meridian.example`, `staging.merid
 
 **What is not here yet.** Access logs need a log archive bucket, and a web application firewall in front of the load balancer is a hardening step. Both are noted for the review at the end of this milestone.
 
+## ECS
+
+A cluster per environment, from the [`ecs-cluster` module](../../infra/modules/ecs-cluster/README.md), and one [`ecs-service`](../../infra/modules/ecs-service/README.md) per service.
+
+```mermaid
+flowchart TB
+    lb[Load balancer<br/>its security group] -- "rule pair, port 8080" --> sg
+
+    subgraph sg[The service's own security group]
+        t1[Task, zone a]
+        t2[Task, zone b]
+    end
+
+    ecs[ECS] -. "execution role:<br/>pull, log, fetch secrets" .-> t1
+    t1 -. "task role:<br/>what the app may do" .-> aws((AWS APIs))
+    sg -- "only stores it names" --> data[(Data tier)]
+```
+
+**Two roles.** The execution role is used by ECS to start a task: pull the image, write the logs, fetch the secrets the task definition refers to. The task role is what the application's own code runs as. Keeping them apart means the application cannot pull other images or read secrets it was not given, and ECS's start-up permissions are never available to application code. Both come from the [`workload-role` module](../../infra/modules/workload-role/README.md), so both carry the permission boundary.
+
+**A security group per service.** This closes review finding F6 of milestone 2, for ECS. The shared application group allowed any port between its members, so one compromised service could reach every other. A service now has a group of its own:
+
+| Direction | Allowed                                                                    |
+| --------- | -------------------------------------------------------------------------- |
+| In        | The load balancer's group, on the container port. Nothing else             |
+| Out       | The data stores the service names, each on one port. HTTPS. DNS to the VPC |
+
+A service that calls another service adds a rule that refers to the other's group. Until then, they cannot reach each other.
+
+**Deployments roll back by themselves.** New tasks must pass the load balancer's health check before old ones are stopped, and there are never fewer healthy tasks than desired. If the new version cannot become healthy, the circuit breaker stops the deployment and returns to the version that was.
+
+**Scaling.** Between the desired count and a ceiling, on average CPU, adding tasks quickly and removing them slowly. Dev runs one task. Staging and production run at least two, in different zones.
+
+## Deploying
+
+The platform is the first four layers. Services are the fifth, `infra/environments/<env>/services`, which changes most often and is therefore the smallest plan.
+
+```mermaid
+flowchart LR
+    src[services/name] -- "1. build, tag by content hash" --> img[Image]
+    img -- "2. push" --> repo[(Repository)]
+    repo -- "3. record" --> ptr[/Parameter:<br/>/meridian/env/name/image/]
+    ptr -- "4. apply the services layer" --> td[New task definition revision]
+    td -- "5. rolling deployment,<br/>with rollback" --> svc[Service]
+```
+
+| Step    | Done by                                                                                     |
+| ------- | ------------------------------------------------------------------------------------------- |
+| 1 to 3  | `scripts/push-image.sh`, for every service, before the services layer is planned or applied |
+| 4 and 5 | `make apply LAYER=services`, or `make apply-all`                                            |
+
+The parameter is the release pointer. Terraform creates it and ignores its value, and the pipeline sets the value. It is the record of what is deployed, and it is why the plan for a pull request shows the deployment that pull request would really make: its images are pushed before the plan is made.
+
+| To                  | Do                                                                                                                |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Deploy a change     | Merge it. The image gets a new tag because its source changed, and the services layer plans a new task definition |
+| Roll back           | Set the parameter to the previous tag and apply the services layer. The image is still in the registry            |
+| See what is running | Read the parameter, or `make smoke`, which checks the task definition against it                                  |
+
+A change that touches only documentation produces the same tag, pushes nothing and plans nothing.
+
 ## How it is enforced
 
 | Rule                                                                            | Where                                                      |
@@ -106,5 +169,8 @@ The domain is a value of the environment: `dev.meridian.example`, `staging.merid
 - **Immutability, scanning and the lifecycle policy.** They are stored and not applied. The same tag can be pushed twice. Difference 30.
 - **The registry's address.** Pushes go to the registry container directly. Difference 29.
 - **Certificate validation.** The emulator issues a certificate at once. On AWS it stays pending until the DNS record exists. Difference 31.
+- **Forwarding through the load balancer.** The emulator's load balancer forwards only to target groups in its default account, and each environment here has an account of its own. A request for `/sample/` matches the service's rule and then fails with "Target group not found". Difference 34. The path is therefore verified in parts: the rule exists and matches, the target is registered and healthy, and the task answers at the address that was registered.
+- **The task role in use.** The emulator gives a container static credentials in its environment and does not serve the task role's credentials. The service reports that for what it is. Difference 35.
+- **Rollback and scaling.** Stored, and not exercised by a failing deployment or by load.
 
-The load balancer itself does behave: over HTTPS it returned the fixed refusal for an unmatched path, and it rejected plain HTTP on the same port.
+What it does do is worth stating, because it is more than expected. It pulls the image from its registry and runs the real container, with the user, the read-only root filesystem and the dropped capabilities the task definition asks for. Difference 33.
