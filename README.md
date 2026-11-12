@@ -79,6 +79,7 @@ See [local development](docs/guides/local-development.md).
 | [Module standards](docs/architecture/module-standards.md)             | What every Terraform module looks like: layout, inputs, outputs, tests and generated documentation    |
 | [Network](docs/architecture/network.md)                               | Tiers, address plan, routing and the reasons behind them                                              |
 | [Encryption standard](docs/architecture/encryption.md)                | What is encrypted, with which key, who can use it and how that is enforced                            |
+| [Access model](docs/architecture/access-model.md)                     | Who can do what, how they authenticate, and what contains each of them                                |
 
 Changes are summarised in the [changelog](CHANGELOG.md).
 
