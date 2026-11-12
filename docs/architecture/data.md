@@ -146,10 +146,11 @@ A missing parameter fails the plan with the parameter's name, which is the signa
 
 ## How it is enforced
 
-| Rule                                                                             | Where                                                                |
-| -------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| Every data store carries a `DataClassification` from the scheme                  | Policy `POL-TAG-4`                                                   |
-| A data store is not deleted or replaced outside dev without a recorded exception | Policy `POL-PROTECT-1`                                               |
-| Stores are encrypted with the data key                                           | Each module, with tests, and the scanner                             |
-| Stores are in the data subnets with the data security group                      | Each module's inputs, and the smoke test                             |
-| Layers are applied and destroyed in order                                        | `scripts/layers.sh`, used by `make apply-all` and `make destroy-all` |
+| Rule                                                                             | Where                                                                                                                                                                         |
+| -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Every data store carries a `DataClassification` from the scheme                  | Policy `POL-TAG-4`                                                                                                                                                            |
+| A data store is not deleted or replaced outside dev without a recorded exception | Policy `POL-PROTECT-1`                                                                                                                                                        |
+| Stores are encrypted with the data key                                           | Each module, with tests, and the scanner                                                                                                                                      |
+| Stores are in the data subnets with the data security group                      | Each module's inputs, and the smoke test                                                                                                                                      |
+| Layers are applied and destroyed in order                                        | `scripts/layers.sh`, used by `make apply-all` and `make destroy-all`                                                                                                          |
+| A protected store cannot be destroyed by accident                                | Deletion protection follows `disposable`, which only dev sets. `make destroy-all` fails in staging and production, and `make teardown` is the deliberate two-step alternative |
