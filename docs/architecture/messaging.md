@@ -84,12 +84,14 @@ What neither stops: a service publishing a well-formed event with wrong content 
 
 A consumer never reads the bus. It has a queue for each event it is interested in, built by the [`event-consumer-queue` module](../../infra/modules/event-consumer-queue/README.md), which has the diagram.
 
-| The queue gives the consumer | How                                                                                                                    |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Buffering                    | Events wait in the queue while the consumer is slow, deploying or down. Four days by default                           |
-| Retries                      | A message that is received and not deleted becomes visible again and is delivered again                                |
-| Isolation                    | Each consumer has its own queue. One consumer's backlog or poison message does not touch another                       |
-| A place for failures         | After five failed receives a message moves to the dead-letter queue, raises an alarm and waits 14 days to be looked at |
+| The queue gives the consumer   | How                                                                                                                              |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| Buffering                      | Events wait in the queue while the consumer is slow, deploying or down. Four days by default                                     |
+| Retries                        | A message that is received and not deleted becomes visible again and is delivered again                                          |
+| Isolation                      | Each consumer has its own queue. One consumer's backlog or poison message does not touch another                                 |
+| A place for failures           | After five failed receives a message moves to the dead-letter queue, raises an alarm and waits 14 days to be looked at           |
+| A place for undelivered events | An event the bus cannot deliver to the queue is retried for an hour and then parked in the same dead-letter queue, not discarded |
+| A warning when it falls behind | A second alarm fires when the oldest message has waited more than 15 minutes                                                     |
 
 The first three queues:
 
