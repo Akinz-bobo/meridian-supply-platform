@@ -67,7 +67,7 @@ flowchart LR
 | File exchange                   | S3             | `data-bucket`       | ERP gateway | Files to and from the finance system                                |
 | Data lake                       | S3             | `data-bucket`       | Analytics   | Every event, kept cheaply, queried with Athena                      |
 
-The modules are added one at a time in this milestone. The stores that belong to a service are created with that service, in milestones 6 to 10, by calling these modules.
+The modules are added one at a time in this milestone. A store that belongs to a service is created in the `data` layer, with the service's name as its component, when that service is first needed. Keeping every store in this layer means a change to a service's compute can never produce a plan that touches its data. The supplier uploads bucket is the first.
 
 ## One store per service
 
