@@ -77,6 +77,7 @@ See [local development](docs/guides/local-development.md).
 | [Policy as code](docs/guides/policy-as-code.md)                       | The organisation's rules, checked against every plan: tags, naming, regions, IAM, protected resources |
 | [The infrastructure pipeline](docs/guides/pipeline.md)                | Plan and rehearsal on pull requests, apply on merge, and how it maps to real AWS                      |
 | [Module standards](docs/architecture/module-standards.md)             | What every Terraform module looks like: layout, inputs, outputs, tests and generated documentation    |
+| [Network](docs/architecture/network.md)                               | Tiers, address plan, routing and the reasons behind them                                              |
 
 Changes are summarised in the [changelog](CHANGELOG.md).
 
