@@ -142,6 +142,10 @@ service-test: ## Run the unit tests of every service
 	  python3 -m unittest discover --start-directory "$$service/tests" --pattern 'test_*.py' || exit 1; \
 	done
 
+.PHONY: compute-check
+compute-check: ## Call the workloads of ENV as a client would: TLS, routing, the deployed image, no credentials given away
+	@./scripts/compute-check.sh $(ENV)
+
 .PHONY: state-audit
 state-audit: ## Fail if the remote state of ENV holds a secret value
 	@./scripts/state-audit.sh $(ENV)
