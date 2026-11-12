@@ -110,10 +110,12 @@ Built by the [`vpc-endpoints` module](../../infra/modules/vpc-endpoints/README.m
 
 | Kind      | Services                                                  | Attached to                                 | Cost               |
 | --------- | --------------------------------------------------------- | ------------------------------------------- | ------------------ |
-| Gateway   | S3, DynamoDB                                              | The private and data route tables           | None               |
+| Gateway | S3, DynamoDB | The private route tables | None |
 | Interface | ECR, KMS, CloudWatch Logs, Secrets Manager, SQS, SSM, STS | The private subnets, one interface per zone | Per zone, per hour |
 
-The gateway endpoints are why the data tier needs no internet route: a database export to S3 follows a prefix list route that stays on the AWS network.
+Every endpoint carries a policy. Without one, an endpoint lets any principal reach any resource of its service, which would make it a path for copying data to a bucket or table in another account without touching the internet. Gateway endpoints admit this account's principals and reach this account's resources. Interface endpoints admit this account's principals. The S3 endpoint has one exception, read-only, for the bucket ECR serves image layers from.
+
+The data tier is not given a route to the gateway endpoints. It holds managed databases and caches, which open no connections of their own: backups and exports are done by the service, outside the VPC. Its network ACL allows traffic to the VPC range only, so a route would be unusable in any case. An earlier version attached the data route table and described it as the data tier's path to S3. The [baseline review](security/baseline-review.md) found that this contradicted the ACL.
 
 Staging and production get the full interface set, so a container can start, log and read its secrets with NAT unavailable. Dev keeps three (the two ECR endpoints and Secrets Manager) and sends the rest through NAT. That list is `interface_endpoint_services` in `infra/environments/dev/env.tfvars`.
 
@@ -166,7 +168,7 @@ The `foundation` layer publishes the network to Parameter Store under `/meridian
 | `private-subnet-ids`              | StringList | Workloads                                                      |
 | `data-subnet-ids`                 | StringList | Database and cache subnet groups                               |
 | `private-route-table-ids`         | StringList | Gateway endpoints                                              |
-| `data-route-table-id`             | String     | Gateway endpoints                                              |
+| `data-route-table-id` | String | Checks that the data tier has no route out |
 | `flow-log-group`                  | String     | Queries and alarms on network traffic                          |
 | `s3-prefix-list-id`               | String     | Security group rules that allow S3 only                        |
 | `dynamodb-prefix-list-id`         | String     | Security group rules that allow DynamoDB only                  |
@@ -183,7 +185,7 @@ Lists are in zone order: the first element is zone a.
 | The address plan, and that no route targets the data table                                                     | Module tests, `make test`                           |
 | Network resources are named for their environment                                                              | Policy `POL-NAME-5`, `make policy`                  |
 | Three zones per tier, data table has only local and endpoint routes, every private table has a NAT route       | `make smoke`, which asks the EC2 API after an apply |
-| Gateway endpoints on four route tables, interface endpoints in three zones, an active flow log with retention  | `make smoke`                                        |
+| Gateway endpoints on the three private route tables with a policy limited to this account, interface endpoints in three zones, an active flow log with retention | `make smoke` |
 | Log groups have a retention period of at least 30 days                                                         | Policies `POL-LOG-1` and `POL-LOG-2`                |
 | Only the load balancer group is open to the internet, the data group has no egress, the default group is empty | `make smoke`                                        |
 | No ingress rule opens anything but 80 or 443 to the world, and every rule is described                         | Policies `POL-SG-1` and `POL-SG-2`                  |
