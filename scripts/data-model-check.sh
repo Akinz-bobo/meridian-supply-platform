@@ -148,18 +148,23 @@ marker_exists() {
 check 'the refused pick left no trace in the ledger' refused marker_exists "$sku-4"
 check 'while the accepted pick did' marker_exists "$sku-3"
 
+# One racing pick. It runs in the background, in a process of its own, so
+# it takes a directory of its own for the transaction file that record
+# writes. It leaves a file behind if the pick was accepted.
+race_one() {
+  local attempt="$work/race-$1"
+  mkdir -p "$attempt"
+  if work="$attempt" record "$sku-race-$1" "${day}T12:00:${1}0Z" "$race" 2031-12-31 CHILL-C -10 >/dev/null 2>&1; then
+    touch "$attempt/succeeded"
+  fi
+}
+
 # INV-5 under concurrency: ten picks of 10 at the same moment, against a
 # batch holding 50. Exactly five can succeed, whatever order they arrive in.
 race="B-$sku-RACE"
 record "$sku-race-0" "${day}T12:00:00Z" "$race" 2031-12-31 CHILL-C 50 >/dev/null
 for n in 1 2 3 4 5 6 7 8 9 10; do
-  (
-    work="$work/race-$n"
-    mkdir -p "$work"
-    if record "$sku-race-$n" "${day}T12:00:${n}0Z" "$race" 2031-12-31 CHILL-C -10 >/dev/null 2>&1; then
-      touch "$work/succeeded"
-    fi
-  ) &
+  race_one "$n" &
 done
 wait
 check 'of ten simultaneous picks against stock for five, exactly five succeed' \
