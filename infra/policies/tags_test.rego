@@ -58,3 +58,29 @@ test_warns_and_does_not_deny_when_tags_are_unknown_until_apply if {
 	count(tags.deny) == 0 with input as input_plan
 	count(tags.warn) == 1 with input as input_plan
 }
+
+classified(level) := object.union(fixtures.good_tags, {"DataClassification": level})
+
+test_allows_a_data_store_with_a_classification if {
+	rc := fixtures.create("aws_dynamodb_table", "t", {"tags_all": classified("confidential")})
+	count(tags.deny) == 0 with input as fixtures.plan("prod", [rc])
+}
+
+test_denies_a_data_store_without_a_classification if {
+	rc := fixtures.create("aws_s3_bucket", "b", {"tags_all": fixtures.good_tags})
+	messages := tags.deny with input as fixtures.plan("prod", [rc])
+	some msg in messages
+	contains(msg, "POL-TAG-4")
+}
+
+test_denies_a_classification_that_is_not_in_the_scheme if {
+	rc := fixtures.create("aws_db_instance", "d", {"tags_all": classified("secret")})
+	messages := tags.deny with input as fixtures.plan("prod", [rc])
+	some msg in messages
+	contains(msg, "POL-TAG-4")
+}
+
+test_does_not_ask_other_resources_for_a_classification if {
+	rc := fixtures.create("aws_sqs_queue", "q", {"tags_all": fixtures.good_tags})
+	count(tags.deny) == 0 with input as fixtures.plan("prod", [rc])
+}

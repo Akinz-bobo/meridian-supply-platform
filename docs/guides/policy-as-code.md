@@ -41,11 +41,12 @@ Every rule has an identifier, which appears in its failure message.
 
 ### Tags
 
-| Rule      | Requires                                                                          | Reason                                                                                   |
-| --------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| POL-TAG-1 | Every taggable resource has `Project`, `Environment`, `Component` and `ManagedBy` | Cost allocation, finding the owner in an incident, and IAM conditions all depend on tags |
-| POL-TAG-2 | `ManagedBy` is `terraform`                                                        | Marks what must not be changed by hand                                                   |
-| POL-TAG-3 | The `Environment` tag matches the environment being applied to                    | Catches a module called with the wrong environment                                       |
+| Rule      | Requires                                                                                            | Reason                                                                                                                                                  |
+| --------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POL-TAG-1 | Every taggable resource has `Project`, `Environment`, `Component` and `ManagedBy`                   | Cost allocation, finding the owner in an incident, and IAM conditions all depend on tags                                                                |
+| POL-TAG-2 | `ManagedBy` is `terraform`                                                                          | Marks what must not be changed by hand                                                                                                                  |
+| POL-TAG-3 | The `Environment` tag matches the environment being applied to                                      | Catches a module called with the wrong environment                                                                                                      |
+| POL-TAG-4 | Every data store carries `DataClassification`: `public`, `internal`, `confidential` or `restricted` | It decides who may read the store, how long it is kept and whether it is backed up. See the [data architecture](../architecture/data.md#classification) |
 
 A resource type counts as taggable if its planned values include `tags_all`, so new resource types are covered without maintaining a list.
 
