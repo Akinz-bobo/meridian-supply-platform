@@ -29,3 +29,14 @@ deny contains msg if {
 		[rc.address, days, minimum_days],
 	)
 }
+
+deny contains msg if {
+	some rc in plan.changing
+	rc.type == "aws_cloudwatch_log_group"
+	not plan.unknown(rc, "kms_key_id")
+	object.get(rc.change.after, "kms_key_id", null) in {"", null}
+	msg := sprintf(
+		"POL-LOG-3: %s is not encrypted with a customer managed key. Set kms_key_id to the logs key",
+		[rc.address],
+	)
+}
