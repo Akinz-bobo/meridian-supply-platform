@@ -7,8 +7,9 @@ A permission boundary grants nothing. A role's effective permissions are the ove
 What a caller needs to know:
 
 - **Resources are matched by the naming standard**: names starting with `resource_prefix` and paths under `path_prefix`. The prefix must end with a hyphen and the path with a slash, or `meridian-prod` would also match `meridian-production`.
+- **A workload cannot destroy history.** S3 actions are listed exactly: a workload may delete the current object, which with versioning leaves the old versions in place. Deleting a version, turning versioning off and changing lifecycle rules are denied outright.
 - **No statement grants a whole service.** Actions are the data-plane actions workloads use: read and write objects, items, messages and events, read configuration and secrets, write logs.
-- **Explicit denies sit on top** for IAM, key administration, audit log tampering and requests to other regions. They hold even if an allow is widened later.
+- **Explicit denies sit on top** for IAM, key administration, object version deletion, audit log tampering and requests to other regions. They hold even if an allow is widened later.
 - **Keys cannot be matched by name**, because key identifiers are random. The boundary allows use of keys in this account and region, and the role's own policy chooses which.
 - **The output `policy_arn` is known at plan time.** It is built from the account and name, so policies that refer to the boundary can be rendered and policy checked before anything is applied.
 
