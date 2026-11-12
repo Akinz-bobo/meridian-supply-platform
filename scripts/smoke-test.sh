@@ -303,8 +303,6 @@ check 'the backup role carries a boundary' jq -e \
 
 # Messaging layer: the event bus.
 bus="meridian-$environment-events"
-messaging_key_arn="$(as_account "$account" aws kms describe-key --key-id "alias/meridian-$environment-messaging" \
-  --output json 2>/dev/null | jq -r '.KeyMetadata.Arn // empty' || true)"
 described_bus="$(as_account "$account" aws events describe-event-bus --name "$bus" --output json 2>/dev/null || echo '{}')"
 check "the event bus $bus exists" jq -e --arg b "$bus" '.Name == $b' <<<"$described_bus"
 check 'its policy refuses publishers from outside the account' jq -e --arg a "$account" \
