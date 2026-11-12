@@ -209,6 +209,28 @@ check 'it sends object events to EventBridge' jq -e 'has("EventBridgeConfigurati
 check 'its name is published for the catalog service' \
   as_account "$account" aws ssm get-parameter --name "/meridian/$environment/catalog/uploads-bucket-name"
 
+# Data layer: tables.
+disposable="$(sed -n 's/^disposable[[:space:]]*=[[:space:]]*\(true\|false\).*/\1/p' "$env_dir/env.tfvars")"
+for table in movements stock-levels; do
+  name="meridian-$environment-inventory-$table"
+  described="$(as_account "$account" aws dynamodb describe-table --table-name "$name" --output json 2>/dev/null || echo '{}')"
+  check "the $table table exists and is active" jq -e '.Table.TableStatus == "ACTIVE"' <<<"$described"
+  check "the $table table is encrypted with the data key" jq -e --arg k "$data_key_arn" \
+    '.Table.SSEDescription | .Status == "ENABLED" and .SSEType == "KMS" and .KMSMasterKeyArn == $k' <<<"$described"
+  check "the $table table can be restored to a point in time" jq -e \
+    '.ContinuousBackupsDescription.PointInTimeRecoveryDescription.PointInTimeRecoveryStatus == "ENABLED"' \
+    <<<"$(as_account "$account" aws dynamodb describe-continuous-backups --table-name "$name" --output json 2>/dev/null || echo '{}')"
+  if [ "$disposable" != true ]; then
+    check "the $table table is protected from deletion" jq -e '.Table.DeletionProtectionEnabled' <<<"$described"
+  fi
+done
+check 'the movement ledger streams every new item' jq -e \
+  '.Table.StreamSpecification | .StreamEnabled and .StreamViewType == "NEW_IMAGE"' \
+  <<<"$(as_account "$account" aws dynamodb describe-table --table-name "meridian-$environment-inventory-movements" --output json 2>/dev/null || echo '{}')"
+check 'the stock level table has its expiry and batch indexes' jq -e \
+  '[.Table.GlobalSecondaryIndexes[]?.IndexName] | sort == ["by-batch", "by-expiry-date"]' \
+  <<<"$(as_account "$account" aws dynamodb describe-table --table-name "meridian-$environment-inventory-stock-levels" --output json 2>/dev/null || echo '{}')"
+
 while IFS= read -r layer; do
   check "state for the $layer layer is in the shared bucket" \
     as_account "$state_account" aws s3api head-object --bucket "$state_bucket" --key "$1/$layer/terraform.tfstate"
